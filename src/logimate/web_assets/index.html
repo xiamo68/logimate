@@ -13,9 +13,9 @@
   <aside class="rail">
     <a class="brand" href="#investigate"><span class="brand-mark" aria-hidden="true"></span>LogiMate</a>
     <nav class="tabs" aria-label="工作台导航">
-      <a href="#investigate" data-view="investigate"><span class="nav-icon search-icon" aria-hidden="true"></span>排查</a>
-      <a href="#improve" data-view="improve"><span class="nav-icon layers-icon" aria-hidden="true"></span>策略改进</a>
-      <a href="#evaluate" data-view="evaluate"><span class="nav-icon bars-icon" aria-hidden="true"></span>评测</a>
+      <a href="#investigate" data-view="investigate">订单排查</a>
+      <a href="#improve" data-view="improve">策略改进</a>
+      <a href="#evaluate" data-view="evaluate">评测归档</a>
     </nav>
     <form class="identity" id="identity-form">
       <p id="connection" role="status"><span class="dot"></span>正在连接</p>
@@ -30,33 +30,37 @@
     </form>
   </aside>
   <div class="workspace">
-    <header class="top"><strong id="view-label">排查</strong><span>合成演示</span></header>
     <main id="main" tabindex="-1">
       <p id="notice" class="notice" role="status" hidden></p>
       <section id="investigate" aria-labelledby="investigate-heading">
-        <div class="page-heading"><h1 id="investigate-heading">订单异常排查</h1>
-          <p>查询订单、仓储、物流和售后记录，核对诊断依据与调用轨迹。</p></div>
+        <div class="page-heading"><div><h1 id="investigate-heading">订单异常排查</h1>
+          <p>定位履约卡点，核对业务记录并确定下一步处理动作。</p></div>
+          <span class="data-scope">本地 · 合成数据</span></div>
         <form class="panel question" id="investigate-form">
-          <label class="section-title" for="question">提交问题</label>
-          <textarea id="question" name="question" rows="3" maxlength="2000" required>LM-1001 已发货三天，为什么还没有物流更新？</textarea>
-          <div class="question-actions">
-            <div class="quick" aria-label="示例问题">
-              <span>快速填入</span>
-              <button type="button" data-question="LM-1001 已发货三天，为什么还没有物流更新？">物流异常</button>
-              <button type="button" data-question="LM-1001 还没出库能退款吗？">售后政策</button>
-              <button type="button" data-question="再查这个订单的物流">跟进上单</button>
-            </div>
-            <button class="primary" id="ask" type="submit">开始排查</button>
+          <div class="lookup-row">
+            <label for="order-number">订单号<input id="order-number" name="order" placeholder="输入订单号" maxlength="64"></label>
+            <button class="primary" id="ask" type="submit">查询订单</button>
+            <button class="quiet" id="sample-order" type="button">填入样例 LM-1001</button>
+            <button class="quiet" id="new-session" type="button">新排查会话</button>
           </div>
+          <details class="follow-up" id="follow-up">
+            <summary>补充问题或追问</summary>
+            <label class="form-label" for="question">问题
+              <textarea id="question" name="question" rows="2" maxlength="2000" placeholder="例如：这个订单已发货，为什么还没揽收？"></textarea>
+            </label>
+            <button class="primary" id="ask-follow-up" type="submit">发送问题</button>
+          </details>
         </form>
         <div class="report-grid">
-          <div class="panel">
-            <div class="section-head"><h2>诊断与证据</h2><button class="quiet" id="new-session" type="button">新会话</button></div>
-            <div id="result" aria-live="polite"><p class="empty">提交问题后，这里会显示诊断结论和证据。</p></div>
+          <section class="panel order-panel" aria-label="订单排查结果">
+            <div id="result" aria-live="polite"><h2>订单排查结果</h2><p class="empty">输入订单号后查看核查结论和业务证据。</p></div>
             <div id="feedback-form-slot"></div>
-          </div>
-          <div class="panel"><h2>调用轨迹</h2><div id="trace"><p class="empty">等待排查。</p></div></div>
+          </section>
+          <aside class="panel action-panel" id="handling-panel" aria-labelledby="action-heading" tabindex="-1"><h2 id="action-heading">处理建议</h2>
+            <div id="next-action"><p class="empty">查询后将根据已取得的证据给出处理建议。</p></div>
+          </aside>
         </div>
+        <details class="panel technical" id="technical"><summary>技术详情</summary><div id="trace"></div></details>
         <section class="panel" id="history-panel" hidden><h2>会话记录</h2><div id="history"></div></section>
       </section>
       <section id="improve" aria-labelledby="improve-heading" hidden>

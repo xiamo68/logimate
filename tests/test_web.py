@@ -15,6 +15,8 @@ def test_workbench_and_empty_evaluation_archive(tmp_path, monkeypatch):
         with TestClient(create_app(settings, engine), headers={"Origin": settings.origin}) as client:
             page = client.get("/")
             assert page.status_code == 200 and "订单异常排查" in page.text
+            assert 'id="order-number"' in page.text
+            assert '<details class="panel technical" id="technical">' in page.text
             assert client.get("/assets/workbench.js").status_code == 200
             assert client.get("/api/v1/evaluations").status_code == 401
             assert client.post("/api/v1/demo/sign-in", json={"profile": "alpha_operator"}).is_success

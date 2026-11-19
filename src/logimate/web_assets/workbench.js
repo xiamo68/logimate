@@ -14,6 +14,7 @@ const labels = {
   hybrid: "混合检索", keyword_only: "关键词回退", semantic_only: "语义检索", demo: "无密钥",
   deepseek: "DeepSeek", rag: "售后检索", grounding: "事实校验",
   status: "状态", promised_by: "承诺送达", handoff_recorded: "有交接记录",
+  marked_shipped_at: "标记发货", outbound_at: "出库时间", latest_event_at: "最新记录",
   case_count: "工单数", label_created: "已创建面单", picked_up: "已揽收", shipped: "已发货",
 };
 const diagnosisLabels = {
@@ -21,7 +22,18 @@ const diagnosisLabels = {
   in_transit_delayed: "运输延误", delivery_disputed: "签收争议", needs_verification: "待核实",
 };
 const viewLabels = {investigate: "排查", improve: "策略改进", evaluate: "评测"};
-const emptyResult = "提交问题后，这里会显示诊断结论和证据。";
+const emptyResult = "输入订单号后查看核查结论和业务证据。";
+const emptyAction = "查询后将根据已取得的证据给出处理建议。";
+const stages = {order: "订单状态", warehouse: "仓储出库与交接", logistics: "承运商揽收", aftersales: "售后工单", policy: "适用政策"};
+const handling = {
+  awaiting_handoff: ["联系仓库核实交接", "核对交接单、交接时间与包裹号。若尚未交接，请仓库确认预计交接时间。"],
+  awaiting_pickup: ["向承运商核实揽收进度", "提供包裹号及交接凭证，确认是否完成首次揽收扫描。"],
+  pickup_overdue: ["向承运商查询揽收异常", "提交交接凭证与包裹号，确认实物位置和预计揽收时间。"],
+  in_transit_delayed: ["向承运商确认送达时间", "核对最新扫描和承诺送达时间，确认延误原因。"],
+  delivery_disputed: ["转售后核实签收争议", "收集签收凭证、运单号和用户反馈。"],
+  needs_verification: ["补齐缺失的履约记录", "联系对应业务方补齐证据后重新查询。"],
+  normal: ["按当前履约节点跟进", "若客户反馈与业务记录不一致，补充具体问题后再核查。"],
+};
 const retryKeys = new Map();
 let actor = null;
 let activeView = "investigate";
@@ -118,15 +130,24 @@ function evidenceRow(item) {
   const summary = node("summary");
   const overview = item.policy
     ? item.policy.title_path.join(" / ")
+    : item.source === "warehouse" && item.fields.some(field => field.name === "handoff_recorded" && field.value === false)
+      ? "仓储查询未见交接记录"
     : item.fields.filter(field => field.value !== null).map(
       field => `${labels[field.name] || field.name} ${labels[field.value] || translatedValue(field.value)}`,
     ).join(" · ");
-  summary.append(node("strong", labels[item.source] || item.source), node("span", overview || item.resource_id),
-                 node("span", "查看详情 ›"));
+  summary.append(node("strong", stages[item.source] || item.source), node("span", overview || item.resource_id),
+                 node("span", "原始记录 ›"));
   details.append(summary);
   const body = node("div", undefined, "detail-body");
   if (item.policy) {
     body.append(node("p", item.policy.excerpt), node("p", `政策版本 ${item.policy.version} · 生效 ${item.policy.effective_at}`, "metadata"));
+  }
+  if (item.fields.length) {
+    const fields = node("dl", undefined, "record-fields");
+    for (const {name, value} of item.fields.filter(field => field.value !== null)) {
+      fields.append(node("dt", labels[name] || name), node("dd", labels[value] || translatedValue(value)));
+    }
+    body.append(fields);
   }
   body.append(node("p", `记录 ${item.resource_id} · 查询时点 ${item.observed_at}`, "metadata"),
               node("p", `证据 ID ${item.evidence_id}`, "metadata"));
@@ -137,7 +158,42 @@ function evidenceRow(item) {
 function translatedValue(value) {
   if (value === true) return "是";
   if (value === false) return "否";
+  if (typeof value === "string" && /^\d{4}-\d\d-\d\dT/.test(value)) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString("zh-CN", {hour12: false});
+  }
   return String(value);
+}
+
+function resolveHandling(details, evidence) {
+  const codes = [...new Set(details.diagnoses.map(item => item.classification))];
+  const warehouse = evidence.filter(item => item.source === "warehouse");
+  const tracking = evidence.filter(item => item.source === "logistics");
+  const labelOnly = tracking.length === 1 && tracking[0].fields.some(field =>
+    field.name === "status" && ["label_created", "no_events"].includes(field.value));
+  const missingHandoff = warehouse.length === 1 && warehouse[0].fields.some(field =>
+    field.name === "handoff_recorded" && field.value === false);
+  if (details.status === "answered" && details.retrieval_mode && evidence.some(item => item.policy)) {
+    return {title: "已查到相关政策", summary: "展开适用政策查看条款原文。",
+      step: ["按适用条款核对处理条件", "结合订单状态和政策原文，再决定是否转售后。"], warning: false};
+  }
+  if (codes.length === 1 && ["pickup_overdue", "awaiting_handoff"].includes(codes[0]) && missingHandoff && labelOnly) {
+    return {
+      title: codes[0] === "awaiting_handoff" ? "等待仓储交接" : "待核实仓储交接",
+      summary: "仓储未见交接记录，物流尚无揽收。请核实实物是否已移交。",
+      step: handling.awaiting_handoff, warning: true,
+    };
+  }
+  if (details.status !== "answered") {
+    return {title: labels[details.status], summary: details.summary,
+      step: details.status === "needs_clarification" ? ["补充订单号或问题", "提供明确的订单号，或打开追问补充上下文。"] :
+        handling.needs_verification, warning: true};
+  }
+  const code = codes[0];
+  return {title: codes.map(item => diagnosisLabels[item]).join(" / ") || "已完成核查",
+    summary: "以下是本次查询取得的业务记录。", step: codes.length > 1
+      ? ["逐个核对包裹状态", "各包裹的履约状态不同，请分别核对运单和联系对应业务方。"]
+      : handling[code] || handling.needs_verification, warning: code !== "normal"};
 }
 
 function normalizeEvidence(evidence) {
@@ -208,7 +264,8 @@ async function showRun(run, token, generation) {
   const body = $("result");
   show($("feedback-form-slot"));
   if (run.status !== "completed" || !run.result) {
-    show(body, node("p", run.error?.message || labels[run.status] || run.status, "empty"));
+    show(body, node("h2", "订单排查结果"), node("p", run.error?.message || labels[run.status] || run.status, "empty"));
+    show($("next-action"), node("p", emptyAction, "empty"));
     if (run.status === "interrupted") {
       body.append(control("继续排查", async () => {
         await api(`/runs/${run.run_id}/resume`, "POST");
@@ -224,23 +281,36 @@ async function showRun(run, token, generation) {
   if (generation !== identityGeneration || token !== observation) return;
   const details = run.result;
   const name = [...new Set(details.diagnoses.map(item => diagnosisLabels[item.classification]))].join(" / ");
+  const status = resolveHandling(details, evidence);
+  const order = evidence.find(item => item.source === "order");
+  const heading = node("div", undefined, "section-head");
+  heading.append(node("h2", order ? `订单 ${order.resource_id}` : "排查结果"));
+  if (details.status === "answered") heading.append(node("span", "核查完成", "result-status"));
   const banner = node("div", undefined, "diagnosis");
-  if (details.status !== "answered") banner.dataset.tone = "warning";
-  banner.append(node("strong", name || labels[details.status]), node("p", details.summary));
-  show(body, banner, node("p", `版本 ${shortId(run.versions.version_id)} · ${labels[run.mode] || run.mode}` +
-    (details.retrieval_mode ? ` · ${labels[details.retrieval_mode]}` : ""), "metadata"));
+  if (status.warning) banner.dataset.tone = "warning";
+  banner.append(node("strong", status.title), node("p", status.summary));
+  show(body, heading, banner);
+  const shortcut = node("button", status.step[0] + " ›", "mobile-action");
+  shortcut.type = "button";
+  shortcut.addEventListener("click", () => $("handling-panel").focus());
+  body.append(shortcut);
+  const actionBox = node("div", undefined, "action-box");
+  actionBox.append(node("h3", status.step[0]), node("p", status.step[1]));
+  show($("next-action"), actionBox);
   if (details.missing_information.length) {
-    body.append(node("p", "待补充 " + details.missing_information.join("、"), "subtle"));
+    $("next-action").append(node("p", "待补充 " + details.missing_information.join("、"), "subtle"));
   }
   if (evidence.length) {
     const list = node("div", undefined, "evidence-list");
-    const heading = node("div", undefined, "evidence-header");
-    heading.append(node("span", "环节"), node("span", "关键证据"), node("span", "详情"));
-    list.append(heading, ...normalizeEvidence(evidence).map(evidenceRow));
-    body.append(list);
+    const tableHeading = node("div", undefined, "evidence-header");
+    tableHeading.append(node("span", "业务环节"), node("span", "核查结果"), node("span", "详情"));
+    list.append(tableHeading, ...normalizeEvidence(evidence).map(evidenceRow));
+    body.append(node("h3", "业务证据"), list);
   }
-  if (details.next_steps.length) body.append(node("p", details.next_steps.join(" · "), "subtle"));
+  if (details.next_steps.length) $("next-action").append(node("p", details.next_steps.join(" · "), "subtle"));
   showTrace(trace.events);
+  $("trace").prepend(node("p", `规则结论：${name || "无"} · 版本 ${shortId(run.versions.version_id)} · ${labels[run.mode] || run.mode}` +
+    (details.retrieval_mode ? ` · ${labels[details.retrieval_mode]}` : ""), "metadata"));
   feedbackForm(run, evidence);
 }
 
@@ -251,6 +321,7 @@ async function watchRun(id) {
   const generation = identityGeneration;
   local("run", id);
   show($("trace"), node("p", "等待本次调用轨迹。", "empty"));
+  $("technical").open = false;
   for (let index = 0; index < 110; index++) {
     if (token !== observation || generation !== identityGeneration) return;
     const run = await api(`/runs/${id}`);
@@ -322,7 +393,9 @@ async function signIn(profile) {
 }
 
 function resetRunPanel() {
-  show($("result"), node("p", emptyResult, "empty"));
+  show($("result"), node("h2", "订单排查结果"), node("p", emptyResult, "empty"));
+  show($("next-action"), node("p", emptyAction, "empty"));
+  $("technical").open = false;
   show($("trace"), node("p", "等待排查。", "empty"));
   show($("feedback-form-slot"));
   $("history-panel").hidden = true;
@@ -334,16 +407,26 @@ $("identity-form").addEventListener("submit", event => {
   void signIn($("profile").value);
 });
 
-document.querySelectorAll("[data-question]").forEach(button => button.addEventListener("click", () => {
-  $("question").value = button.dataset.question;
-  $("question").focus();
-}));
+$("sample-order").addEventListener("click", () => {
+  $("order-number").value = "LM-1001";
+  $("order-number").focus();
+});
 
 $("investigate-form").addEventListener("submit", event => {
   event.preventDefault();
-  const question = $("question").value.trim();
-  if (!question) return announce("请输入要排查的问题。", true);
-  action($("ask"), async () => {
+  const followUp = event.submitter === $("ask-follow-up");
+  const field = followUp ? $("question") : $("order-number");
+  const value = field.value.trim();
+  if (!value) {
+    field.focus();
+    return announce(followUp ? "请输入要追问的问题。" : "请输入订单号。", true);
+  }
+  if (!followUp && !/^LM-[a-z0-9][a-z0-9-]{0,55}$/i.test(value)) {
+    field.focus();
+    return announce("订单号格式不正确，例如 LM-1001。", true);
+  }
+  const question = followUp ? value : `查询订单 LM-${value.slice(3)}`;
+  action(followUp ? $("ask-follow-up") : $("ask"), async () => {
     announce("");
     let session = local("session");
     if (!session) {
@@ -362,7 +445,7 @@ $("new-session").addEventListener("click", () => {
   local("run", null);
   resetRunPanel();
   announce("下一次提问会创建新会话。");
-  $("question").focus();
+  $("order-number").focus();
 });
 
 async function refreshView() {
@@ -379,7 +462,6 @@ async function refreshView() {
 function selectView() {
   const hash = location.hash.slice(1);
   activeView = Object.hasOwn(viewLabels, hash) ? hash : "investigate";
-  $("view-label").textContent = viewLabels[activeView];
   for (const view of Object.keys(viewLabels)) $(view).hidden = view !== activeView;
   for (const link of document.querySelectorAll(".tabs a")) {
     if (link.dataset.view === activeView) link.setAttribute("aria-current", "page");

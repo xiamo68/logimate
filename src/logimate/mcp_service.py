@@ -109,7 +109,8 @@ def create_service(engine, signing_key):
                 return ToolResult(status="not_found")
             packages = packages_for(connection, claims, order_id)
             return respond("order", order_id, claims, {**row, "order_id": order_id, "package_ids": packages},
-                           {"status": row["status"], "promised_by": row["promised_by"]})
+                           {"status": row["status"], "marked_shipped_at": row["marked_shipped_at"],
+                            "promised_by": row["promised_by"]})
 
         return execute(ctx, "order.get", query)
 
@@ -130,7 +131,9 @@ def create_service(engine, signing_key):
             return respond("warehouse", package_id or order_id, claims,
                            {"order_id": order_id, "package_ids": packages, "events": events,
                             "observed_through": claims["as_of"]},
-                           {"handoff_recorded": any(event["event_type"] == "handed_off" for event in events)})
+                           {"handoff_recorded": any(event["event_type"] == "handed_off" for event in events),
+                            "outbound_at": next((event["occurred_at"] for event in reversed(events)
+                                                 if event["event_type"] == "outbound"), None)})
 
         return execute(ctx, "warehouse.get_events", query)
 
@@ -149,7 +152,7 @@ def create_service(engine, signing_key):
             return respond("logistics", package_id, claims,
                            {"package_id": package_id, "carrier_id": "synthetic-carrier", "status": current,
                             "estimated_delivery_at": None, "events": events, "observed_through": claims["as_of"]},
-                           {"status": current})
+                           {"status": current, "latest_event_at": events[-1]["occurred_at"] if events else None})
 
         return execute(ctx, "logistics.get_tracking", query)
 
