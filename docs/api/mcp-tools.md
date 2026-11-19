@@ -1,6 +1,6 @@
 # MCP 领域工具合同
 
-状态为设计合同。业务取证在 FastAPI 与内部领域服务之间使用 MCP Streamable HTTP，服务路径为 `/mcp`。协调图只调用经白名单注册的工具，业务表查询绑定服务端授权和观测时点。 [MCP 传输说明](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) · [工具定义](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+四个只读工具已接入。业务取证在 FastAPI 与独立本地服务之间使用 MCP Streamable HTTP，服务路径为 `/mcp`。协调图只调用经白名单注册的工具，业务表查询绑定服务端授权和观测时点。 [MCP 传输说明](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) · [工具定义](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
 
 ## 身份和调用
 
@@ -23,7 +23,7 @@
 
 ## 输出与失败
 
-工具结果都有 `status`、`data` 和 `evidence`。仅 `ok` 带非空 `data`。每条证据可按 [HTTP Evidence 模型](openapi.yaml)展示，业务来源的 `policy` 为 `null`。证据 ID 在同一快照内稳定，服务端绑定到相应运行，读取时校验授权。
+工具结果都有 `status`、`data` 和 `evidence`。仅 `ok` 带非空 `data`。每条证据可按 [HTTP Evidence 模型](openapi.yaml)展示，业务来源的 `policy` 为 `null`。证据 ID 在同一运行与快照内稳定，读取时校验运行归属。
 
 | 状态 | 调用方行为 |
 | --- | --- |

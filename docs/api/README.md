@@ -1,6 +1,6 @@
 # LogiMate HTTP 接口联调
 
-已实现健康探针、演示身份及会话创建/读取。其余接口为已确认的设计合同。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
+已实现健康探针、演示身份、会话、排查提交以及运行、轨迹和证据读取。其余接口为已确认的设计合同。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
 
 ## 通用约定
 
@@ -9,7 +9,7 @@
 - 状态写入必须带与配置地址一致的 `Origin`。网页同源发送，CLI 从已配置的本地地址构造请求头并保留会话。租户、用户、角色从服务端上下文获取。网页按权限显示操作，接口单独检查权限和资源归属。
 - 除登录外，写操作接受可选 `Idempotency-Key`，前端生成并在本次操作重试时复用。以租户、用户、HTTP 方法和具体资源路径去重。同键同规范化输入返回原操作的状态码及正文，同键不同输入返回 409。去重和业务写入在同一事务提交。首次提交回放或排查任务返回 202，客户端按 ID 查询状态。
 - 列表使用 `limit` 和 `cursor`，默认 20、最多 100 条。游标由上一页 `next_cursor` 提供，并绑定主体和过滤条件；末页为 `null`。会话详情按消息顺序向后翻页，其他列表按创建时间和 ID 新到旧。
-- 运行在 `queued`、`running`、`interrupted`、`completed`、`failed` 间变化。运行错误使用 `error`。成功完成后，`result.status` 区分 `answered`、`partial`、`needs_clarification`。运行中已取得的证据从轨迹查看。网页每秒轮询，遇终态停止；`interrupted` 显示恢复入口。
+- 运行在 `queued`、`running`、`completed`、`failed` 间变化，阶段 04 接入 `interrupted` 与恢复入口。运行错误使用 `error`。成功完成后，`result.status` 区分 `answered`、`partial`、`needs_clarification`，证据与轨迹随完成结果持久化。网页每秒轮询，遇终态停止。
 - 版本详情包含 `reviewed_report_id` 与 `activation_events`，分别用于定位最近审核决定及历史激活记录。复测页从 `GET /evaluations` 获取对照组和可展开的合成 `case_examples`。完整逐案例归档用 `artifact_path` 指明项目相对位置。
 
 ## 权限与错误

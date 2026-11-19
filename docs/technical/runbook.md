@@ -1,6 +1,6 @@
 # LogiMate 本地运行手册
 
-阶段 01 提供原生 MySQL、合成数据、健康探针和会话接口。后续章节标注各阶段预计接入的能力。
+当前提供原生 MySQL、合成数据、健康探针、会话和 MCP 排查。后续章节标注各阶段预计接入的能力。
 
 ## 环境与配置
 
@@ -12,7 +12,8 @@ Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和
 | `LOGIMATE_DEMO_SIGN_IN` | 回环地址演示入口 | 仅为本地演示启用；启动时校验配置的外部地址是回环地址 |
 | `LOGIMATE_PUBLIC_ORIGIN` | 同源 HTTP 地址 | 默认 `http://127.0.0.1:8010`，用于校验写请求来源 |
 | `LOGIMATE_DATA_VERSION` | 合成业务数据版本 | 与应用种子和索引版本一起解析；运行开始时冻结 |
-| `LOGIMATE_SESSION_SECRET`、`LOGIMATE_MCP_SIGNING_KEY` | 会话与 MCP 请求签名 | 会话密钥至少 32 个字符；MCP 密钥随阶段 02 接入 |
+| `LOGIMATE_SESSION_SECRET`、`LOGIMATE_MCP_SIGNING_KEY` | 会话与 MCP 请求签名 | 各至少 32 个字符，独立生成；应用和 MCP 进程使用同一个 MCP 签名密钥 |
+| `LOGIMATE_MCP_URL` | MCP 服务地址 | 默认 `http://127.0.0.1:8011/mcp` |
 | `MYSQL_DSN`、`REDIS_URL`、`MILVUS_URI` | 本地依赖连接 | 当前必填 MySQL DSN；Redis 和 Milvus 地址在阶段 04 使用 |
 | `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | 只在 `deepseek` 模式提供。启动检查字段完整性，评测记录使用的模型 ID |
 
@@ -34,6 +35,16 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8010/health/ready'
 ```
 
 当前 readiness 检查数据库、迁移与指定数据版本。后续由 [MCP 工具合同](../api/mcp-tools.md)和[检索设计](architecture.md#检索和记忆)约定依赖状态及降级。
+
+## 阶段 02 MCP 排查
+
+在 `.env` 设置 MCP 签名密钥，另开一个 PowerShell 窗口，从仓库根目录启动 MCP。主应用仍用阶段 01 命令启动。已初始化的数据库重新执行 `logimate migrate`，以创建运行与证据表。
+
+```powershell
+uv run --locked --env-file .env uvicorn logimate.mcp_service:create_app --factory --host 127.0.0.1 --port 8011
+```
+
+无密钥模式通过 HTTP 联调说明登录、创建会话并提交 `LM-1001`。运行完成后查看结论、轨迹和证据明细。DeepSeek 模式需显式配置 `LOGIMATE_MODE=deepseek`、`DEEPSEEK_MODEL` 与 `DEEPSEEK_API_KEY`。当前适配器在意图识别节点请求模型，工具授权、取证和诊断在本地执行。正式真实模型验收和费用授权仍在最终阶段。
 
 ## 评测用法
 

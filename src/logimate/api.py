@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, Request, Response
+from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import store
+from .runs_api import mount_runs
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ def create_app(settings=None, engine=None):
         raise ValueError("LOGIMATE_SESSION_SECRET must contain at least 32 characters")
     engine = engine if engine is not None else store.database(settings.dsn)
     tokens = URLSafeTimedSerializer(settings.secret, salt="logimate-demo-session")
+    cursors = URLSafeTimedSerializer(settings.secret, salt="logimate-session-cursor")
     app = FastAPI(title="LogiMate", version="0.1.0")
 
     @app.exception_handler(APIError)
@@ -130,17 +132,47 @@ def create_app(settings=None, engine=None):
         return result
 
     @app.get("/api/v1/sessions/{id}")
-    def get_session(id: str, actor=Depends(identity)):
+    def get_session(id: str, actor=Depends(identity), cursor: str | None = None,
+                    limit: Annotated[int, Query(ge=1, le=100)] = 20):
+        scope = [actor["tenant_id"], actor["user_id"], id]
+        offset = 0
+        if cursor:
+            try:
+                decoded = cursors.loads(cursor, max_age=8 * 3600)
+                if decoded["scope"] != scope:
+                    raise ValueError("cursor scope mismatch")
+                offset = decoded["offset"]
+            except (BadSignature, KeyError, ValueError):
+                raise APIError(422, "invalid_input", "会话游标不可用。") from None
         try:
             with engine.connect() as connection:
                 row = connection.execute(select(store.sessions).where(
                     store.sessions.c.session_id == id, store.sessions.c.tenant_id == actor["tenant_id"],
                     store.sessions.c.user_id == actor["user_id"],
                 )).mappings().one_or_none()
+                history = connection.execute(select(store.runs).where(
+                    store.runs.c.session_id == id, store.runs.c.tenant_id == actor["tenant_id"],
+                    store.runs.c.user_id == actor["user_id"],
+                ).order_by(store.runs.c.snapshot["created_at"].as_string(), store.runs.c.run_id)).mappings().all() if row else []
         except SQLAlchemyError:
             raise APIError(503, "database_unavailable", "暂时无法读取会话。") from None
         if row is None:
             raise APIError(404, "not_found", "会话不存在。")
-        return {**store.public_session(row), "messages": [], "runs": [], "next_cursor": None}
+        messages = []
+        summaries = {}
+        for run in history:
+            run_id = run["run_id"]
+            created = run["snapshot"]["created_at"]
+            summaries[run_id] = {"run_id": run_id, "status": run["status"], "created_at": created}
+            messages.append({"message_id": run_id + "-user", "run_id": run_id, "role": "user",
+                             "content": run["question"], "created_at": created})
+            if run["result"]:
+                messages.append({"message_id": run_id + "-assistant", "run_id": run_id, "role": "assistant",
+                                 "content": run["result"]["summary"], "created_at": created})
+        page = messages[offset:offset + limit]
+        next_cursor = cursors.dumps({"scope": scope, "offset": offset + limit}) if offset + limit < len(messages) else None
+        return {**store.public_session(row), "messages": page, "next_cursor": next_cursor,
+                "runs": [summaries[run_id] for run_id in dict.fromkeys(item["run_id"] for item in page)]}
 
+    mount_runs(app, engine, settings, identity, same_origin, APIError)
     return app

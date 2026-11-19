@@ -2,10 +2,16 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from uuid import uuid4
 
-from sqlalchemy import JSON, Column, MetaData, String, Table, UniqueConstraint, create_engine, insert, select
+from sqlalchemy import JSON, Column, MetaData, String, Table, Text, UniqueConstraint, create_engine, insert, select
 from sqlalchemy.exc import IntegrityError
 
 metadata = MetaData()
+
+
+def hash_identifier(*parts):
+    return sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
+
+
 schema_versions = Table("schema_versions", metadata, Column("version", String(32), primary_key=True))
 datasets = Table("datasets", metadata, Column("version", String(32), primary_key=True),
                  Column("sha256", String(64), nullable=False), Column("as_of", String(32), nullable=False))
@@ -31,6 +37,19 @@ sessions = Table(
     Column("idempotency_key", String(128)),
     UniqueConstraint("tenant_id", "user_id", "idempotency_key", name="uq_session_request"),
 )
+runs = Table(
+    "runs", metadata, Column("run_id", String(64), primary_key=True),
+    Column("session_id", String(64), nullable=False, index=True),
+    Column("tenant_id", String(32), nullable=False), Column("user_id", String(64), nullable=False),
+    Column("question", Text, nullable=False), Column("status", String(32), nullable=False),
+    Column("idempotency_key", String(64)), Column("snapshot", JSON, nullable=False),
+    Column("result", JSON), Column("trace", JSON), Column("error", JSON),
+    UniqueConstraint("session_id", "idempotency_key", name="uq_run_request"),
+)
+evidence = Table(
+    "evidence", metadata, Column("evidence_id", String(64), primary_key=True),
+    Column("run_id", String(64), nullable=False, index=True), Column("payload", JSON, nullable=False),
+)
 
 
 def database(dsn):
@@ -40,8 +59,10 @@ def database(dsn):
 def migrate(engine):
     metadata.create_all(engine)
     with engine.begin() as connection:
-        if connection.scalar(select(schema_versions.c.version).where(schema_versions.c.version == "001")) is None:
-            connection.execute(insert(schema_versions).values(version="001"))
+        installed = set(connection.scalars(select(schema_versions.c.version)))
+        for version in ("001", "002"):
+            if version not in installed:
+                connection.execute(insert(schema_versions).values(version=version))
 
 
 def seed_database(engine, data, digest):
