@@ -93,8 +93,15 @@ class SessionMemory:
     def recall(self, actor, question):
         if not self.vectors:
             return []
+        scope = preference_scope(actor)
+        with self.engine.connect() as connection:
+            indexed = connection.scalar(select(store.preferences.c.preference_id).filter_by(
+                **scope, revoked_at=None,
+            ).where(store.preferences.c.payload["index_status"].as_string() == "ready").limit(1))
+        if not indexed:
+            return []
         try:
-            ids = self.vectors.search(PREFERENCE_COLLECTION, question, preference_scope(actor), threshold=0.55, limit=5)
+            ids = self.vectors.search(PREFERENCE_COLLECTION, question, scope, threshold=0.55, limit=5)
         except Exception as exc:
             log.warning("Preference retrieval unavailable (%s)", type(exc).__name__)
             return []
@@ -102,7 +109,7 @@ class SessionMemory:
             return []
         with self.engine.connect() as connection:
             rows = connection.execute(select(store.preferences.c.preference_id, store.preferences.c.payload).filter_by(
-                **preference_scope(actor), revoked_at=None,
+                **scope, revoked_at=None,
             ).where(store.preferences.c.preference_id.in_(ids))).all()
         allowed = {row.preference_id: row.payload["text"] for row in rows if row.payload["index_status"] == "ready"}
         return [allowed[item] for item in ids if item in allowed]

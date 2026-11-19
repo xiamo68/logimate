@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#132031">
+  <title>LogiMate · 供应链排查工作台</title>
+  <link rel="stylesheet" href="/assets/workbench.css">
+  <script type="module" src="/assets/workbench.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到工作区</a>
+  <aside class="rail">
+    <a class="brand" href="#investigate"><span class="brand-mark" aria-hidden="true"></span>LogiMate</a>
+    <nav class="tabs" aria-label="工作台导航">
+      <a href="#investigate" data-view="investigate"><span class="nav-icon search-icon" aria-hidden="true"></span>排查</a>
+      <a href="#improve" data-view="improve"><span class="nav-icon layers-icon" aria-hidden="true"></span>策略改进</a>
+      <a href="#evaluate" data-view="evaluate"><span class="nav-icon bars-icon" aria-hidden="true"></span>评测</a>
+    </nav>
+    <form class="identity" id="identity-form">
+      <p id="connection" role="status"><span class="dot"></span>正在连接</p>
+      <label for="profile">身份</label>
+      <select id="profile" name="profile">
+        <option value="alpha_operator">Alpha · 运营</option>
+        <option value="alpha_reviewer">Alpha · 审核</option>
+        <option value="beta_operator">Beta · 运营</option>
+        <option value="beta_reviewer">Beta · 审核</option>
+      </select>
+      <button id="switch-profile" class="rail-button" type="submit">切换身份</button>
+    </form>
+  </aside>
+  <div class="workspace">
+    <header class="top"><strong id="view-label">排查</strong><span>合成演示</span></header>
+    <main id="main" tabindex="-1">
+      <p id="notice" class="notice" role="status" hidden></p>
+      <section id="investigate" aria-labelledby="investigate-heading">
+        <div class="page-heading"><h1 id="investigate-heading">订单异常排查</h1>
+          <p>查询订单、仓储、物流和售后记录，核对诊断依据与调用轨迹。</p></div>
+        <form class="panel question" id="investigate-form">
+          <label class="section-title" for="question">提交问题</label>
+          <textarea id="question" name="question" rows="3" maxlength="2000" required>LM-1001 已发货三天，为什么还没有物流更新？</textarea>
+          <div class="question-actions">
+            <div class="quick" aria-label="示例问题">
+              <span>快速填入</span>
+              <button type="button" data-question="LM-1001 已发货三天，为什么还没有物流更新？">物流异常</button>
+              <button type="button" data-question="LM-1001 还没出库能退款吗？">售后政策</button>
+              <button type="button" data-question="再查这个订单的物流">跟进上单</button>
+            </div>
+            <button class="primary" id="ask" type="submit">开始排查</button>
+          </div>
+        </form>
+        <div class="report-grid">
+          <div class="panel">
+            <div class="section-head"><h2>诊断与证据</h2><button class="quiet" id="new-session" type="button">新会话</button></div>
+            <div id="result" aria-live="polite"><p class="empty">提交问题后，这里会显示诊断结论和证据。</p></div>
+            <div id="feedback-form-slot"></div>
+          </div>
+          <div class="panel"><h2>调用轨迹</h2><div id="trace"><p class="empty">等待排查。</p></div></div>
+        </div>
+        <section class="panel" id="history-panel" hidden><h2>会话记录</h2><div id="history"></div></section>
+      </section>
+      <section id="improve" aria-labelledby="improve-heading" hidden>
+        <div class="page-heading"><h1 id="improve-heading">策略改进</h1>
+          <p>复核运营纠正，查看候选版本回放，并管理已验证的规则与技能。</p></div>
+        <div class="improve-grid">
+          <section class="panel"><div class="section-head"><h2>反馈与任务</h2><button id="reload-improve" class="quiet" type="button">刷新</button></div>
+            <div id="feedback-list"></div><div id="job-status" aria-live="polite"></div>
+          </section>
+          <section class="panel"><div class="section-head"><h2>版本与回放</h2></div><div id="versions"></div></section>
+        </div>
+      </section>
+      <section id="evaluate" aria-labelledby="evaluate-heading" hidden>
+        <div class="page-heading"><h1 id="evaluate-heading">评测归档</h1><p>查看已归档的模型模式、样本和对照结果。</p></div>
+        <section class="panel">
+          <form id="evaluation-filters" class="filter-row">
+            <label>实验<select id="evaluation-kind"><option value="">全部</option><option value="logistics">物流诊断</option><option value="rag">售后检索</option><option value="grounding">事实校验</option></select></label>
+            <label>模型模式<select id="evaluation-mode"><option value="">全部</option><option value="demo">无密钥</option><option value="deepseek">DeepSeek</option></select></label>
+            <button type="submit" class="quiet">刷新归档</button>
+          </form>
+          <div id="evaluations" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

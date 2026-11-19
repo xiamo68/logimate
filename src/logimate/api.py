@@ -17,6 +17,7 @@ from .evolution_api import mount_evolution
 from .runs_api import mount_runs
 from .preferences_api import mount_preferences
 from .runtime import Runtime
+from .web import mount_workbench
 
 
 @dataclass(frozen=True)
@@ -181,4 +182,5 @@ def create_app(settings=None, engine=None):
     mount_runs(app, engine, settings, runtime, identity, same_origin, APIError)
     mount_preferences(app, engine, settings, runtime, identity, same_origin, APIError)
     mount_evolution(app, engine, settings, identity, same_origin, APIError)
+    mount_workbench(app, settings, identity, APIError)
     return app

@@ -8,7 +8,7 @@ from sqlalchemy import update
 
 from . import store
 from .memory import SessionMemory
-from .retrieval import Vectors, policy_retriever
+from .retrieval import POLICY_COLLECTION, PREFERENCE_COLLECTION, Vectors, policy_retriever
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +33,12 @@ class Runtime:
                 self.vectors = Vectors.from_environment()
             except Exception as exc:
                 log.warning("Milvus or encoder unavailable (%s); policy search will use BM25", type(exc).__name__)
+        if self.vectors:
+            for collection in (POLICY_COLLECTION, PREFERENCE_COLLECTION):
+                try:
+                    self.vectors.prepare(collection)
+                except Exception as exc:
+                    log.warning("Vector collection %s could not load (%s)", collection, type(exc).__name__)
         self.memory.vectors = self.vectors
         try:
             self.retrieve = policy_retriever(self.engine, self.vectors, self.data_version)

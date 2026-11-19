@@ -1,6 +1,6 @@
 # LogiMate 本地运行手册
 
-当前提供原生 MySQL、合成数据、MCP 排查、规则治理、售后检索、分层记忆和任务续跑。后续章节标注预计接入的能力。
+当前提供中文演示工作台、原生后端服务和评测归档入口。后续章节标注预计接入的能力。
 
 ## 环境与配置
 
@@ -17,6 +17,7 @@ Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和
 | `MYSQL_DSN`、`REDIS_URL`、`LOGIMATE_MILVUS_URI` | 本地依赖连接 | MySQL DSN 必填。Redis 使用本地 URL，Milvus 使用本地 Lite 路径或原生服务 URL |
 | `LOGIMATE_CHECKPOINT_DB` | LangGraph SQLite 检查点 | 默认示例为 `.logimate/checkpoints.db`，续跑期间保留该文件 |
 | `LOGIMATE_EMBEDDING_MODEL`、`LOGIMATE_MODEL_CACHE` | 中文编码模型与缓存目录 | 默认 `BAAI/bge-small-zh-v1.5` 与 `.logimate/models`，首次构建需要下载 |
+| `LOGIMATE_EVALUATION_DIR` | 已归档的评测摘要目录 | 默认为 `.logimate/evaluations`，读取该目录下的 `evaluation-*.json` |
 | `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | 只在 `deepseek` 模式提供。启动检查字段完整性，评测记录使用的模型 ID |
 
 准备一个专用于 LogiMate 的 MySQL 数据库和用户，字符集选 `utf8mb4`。将仓库的 `.env.example` 复制为 `.env`，填入形如 `mysql+pymysql://用户:密码@127.0.0.1:3306/数据库` 的 DSN 和随机会话密钥。用户名或密码中用于 URL 的特殊字符需要编码。本机凭据和模型调用日志留在本机。付费运行前估算费用并使用已获授权的额度。
@@ -70,6 +71,16 @@ uv run --locked --env-file .env logimate index-policies --data-version synthetic
 询问退款或赔付时，可从证据接口读取政策版本、条款和原文。稠密路径超时后检查 `retrieval_mode` 是否为 `keyword_only`。Redis 缓存不可用时由 MySQL 重建近期问题窗口和旧订单号摘要。偏好索引失败可在应用停止后运行 `logimate index-preferences`。更换向量模型时使用独立索引目录并重新建立索引。
 
 主应用使用单进程运行。中断后的运行在启动时标记为 `interrupted`，按原 ID 调用 `POST /runs/{id}/resume`。恢复保留原模型模式、合成快照和规则版本。长期保留同一个检查点文件，清空它会失去已执行节点的进度。
+
+## 阶段 05 演示工作台
+
+应用、MCP 和离线 worker 就绪后，用浏览器打开[本地工作台](http://127.0.0.1:8010/)。网页与 FastAPI 同源，无需另起前端进程。
+
+1. 用 `Alpha · 运营` 身份运行默认的 `LM-1001` 物流问题。左右查看诊断、证据和调用轨迹，展开仓储记录核对交接状态，再通过「跟进上单」演示多轮。
+2. 展开「提交运营纠正」，选「等待交接」并填写依据。切换到 `Alpha · 审核`，进入「策略改进」，展开引用证据并复核。
+3. 切回运营，在「策略改进」运行基础层。任务完成后切换审核，打开候选版本并查看回放，审批后发布。切回运营再次排查，确认诊断变为「等待交接」。同一页面可运行元层并查看技能对照。
+4. 审核员从初始版本详情回滚。运营再次排查可确认恢复为「揽收超时」。如任务中断，可在原运行使用「继续排查」按钮。
+5. 「评测」读取合法的项目相对路径归档摘要。阶段 06 生成实际报告后该视图显示组别、样本量、指标和案例。归档目录为空时显示空状态。
 
 ## 评测用法
 

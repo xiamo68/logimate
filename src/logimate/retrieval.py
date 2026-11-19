@@ -99,6 +99,10 @@ class Vectors:
     def close(self):
         self.client.close()
 
+    def prepare(self, collection):
+        if self.client.has_collection(collection, timeout=2):
+            self.client.load_collection(collection, timeout=5)
+
     def write(self, collection, rows):
         if not rows:
             return
