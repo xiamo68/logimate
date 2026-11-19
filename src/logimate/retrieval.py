@@ -16,6 +16,21 @@ log_service = logging.getLogger(__name__)
 POLICY_COLLECTION = "logimate_policies"
 PREFERENCE_COLLECTION = "logimate_preferences"
 MODEL = "BAAI/bge-small-zh-v1.5"
+POLICY_CHUNK_LIMIT = 420
+
+
+def policy_excerpts(text):
+    excerpt = ""
+    for unit in re.split(r"(?<=[。！？；!?;\n])", text):
+        if len(excerpt) + len(unit) > POLICY_CHUNK_LIMIT and excerpt.strip():
+            yield excerpt.strip()
+            excerpt = ""
+        while len(unit) > POLICY_CHUNK_LIMIT:
+            yield unit[:POLICY_CHUNK_LIMIT].strip()
+            unit = unit[POLICY_CHUNK_LIMIT:]
+        excerpt += unit
+    if excerpt.strip():
+        yield excerpt.strip()
 
 
 def policy_chunks(document, data_version, as_of):
@@ -26,8 +41,7 @@ def policy_chunks(document, data_version, as_of):
     def flush():
         text = "\n".join(buffer).strip()
         if text:
-            for offset in range(0, len(text), 420):
-                excerpt = text[offset:offset + 420]
+            for excerpt in policy_excerpts(text):
                 chunks.append({
                     "id": store.hash_identifier(data_version, document["document_id"], section, str(len(chunks))),
                     "document_id": document["document_id"], "version": data_version,

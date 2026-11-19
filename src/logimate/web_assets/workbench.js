@@ -7,6 +7,8 @@ const labels = {
   initial: "初始版本", base: "基础层", meta: "元层", replay: "重新回放",
   order: "订单", warehouse: "仓储", logistics: "物流", aftersales: "售后", policy: "政策",
   intent: "识别意图", compliance: "校验权限", plan: "安排查询", conclusion: "汇总证据",
+  "model.intent": "意图识别", "model.plan": "生成查询计划", "model.aftersales": "售后政策判定",
+  model_call_failed: "模型调用失败",
   "order.get": "查询订单", "warehouse.get_events": "查询仓储",
   "logistics.get_tracking": "查询物流", "aftersales.get_cases": "查询售后",
   not_found: "未找到记录", unavailable: "来源暂不可用", timeout: "调用超时",
@@ -29,6 +31,18 @@ const domainTools = {
   "order.get": "订单 Agent", "warehouse.get_events": "仓储 Agent",
   "logistics.get_tracking": "物流 Agent", "aftersales.get_cases": "售后 Agent",
 };
+const planGoals = {
+  order_status: "核对订单状态", warehouse_status: "核对仓储状态", carrier_status: "查询承运商轨迹",
+  support_cases: "查询售后工单", diagnosis: "定位跨环节履约异常", policy: "核对售后政策及订单条件",
+};
+const focusedSources = {
+  order_status: "order", warehouse_status: "warehouse", carrier_status: "logistics", support_cases: "aftersales",
+};
+const policyActions = {
+  refund_before_outbound: "发货前退款", refund_in_transit: "在途退款",
+  pickup_overdue_check: "揽收超时核实", delivery_dispute_check: "签收争议",
+};
+const policyConditions = {met: "符合", not_met: "不符合", unknown: "待核实"};
 const handling = {
   awaiting_handoff: ["联系仓库核实交接", "核对交接单、交接时间与包裹号。若尚未交接，请仓库确认预计交接时间。"],
   awaiting_pickup: ["向承运商核实揽收进度", "提供包裹号及交接凭证，确认是否完成首次揽收扫描。"],
@@ -197,7 +211,21 @@ function summarizeDomains(events) {
   });
 }
 
-function agentProcess(details, events, evidence, rows, order, status, basis) {
+function modelActivity(run, events) {
+  const model = run.model_id || "DeepSeek";
+  const calls = events.filter(event => event.kind === "model");
+  if (run.mode === "demo") return node("p", "离线排查 · 未调用模型", "agent-intent");
+  if (!calls.length) return node("p", `${model} · 本次无模型调用记录`, "agent-intent");
+  const summary = calls.map(event => {
+    const outcome = event.status === "ok" ? "成功" : "失败";
+    return `${labels[event.node_id] || event.node_id} ${outcome}（${event.duration_ms} ms）`;
+  });
+  return node("p", `${model} · ${summary.join(" · ")}`,
+    calls.some(event => event.status === "error") ? "agent-warning" : "agent-intent");
+}
+
+function agentProcess(run, events, evidence, rows, order, status, basis) {
+  const details = run.result;
   const domains = summarizeDomains(events);
   const missing = domains.filter(domain => domain.errors.length);
   const panel = node("section", undefined, "agent-process");
@@ -208,7 +236,13 @@ function agentProcess(details, events, evidence, rows, order, status, basis) {
     const available = domains.length - missing.length;
     title.append(node("span", `${available}/${domains.length} 个业务来源完整返回`, "metadata"));
   }
-  panel.append(title);
+  panel.append(title, modelActivity(run, events));
+  if (details.query_plan) {
+    const {goal, sources, origin} = details.query_plan;
+    const selected = ["订单", ...sources.map(source => labels[source] || source)].join("、");
+    const mode = {model: "模型计划", fallback: "保守回退计划", offline: "离线计划"};
+    panel.append(node("p", `${mode[origin]} · ${planGoals[goal]} · 查询 ${selected}`, "agent-intent"));
+  }
   if (events.some(event => event.node_id === "intent" && event.kind === "node")) {
     panel.append(node("p", order ? `协调 Agent 已处理订单 ${order.resource_id} 的排查请求。` :
       details.status === "needs_clarification" ? "协调 Agent 请求补充订单号。" :
@@ -258,6 +292,18 @@ function translatedValue(value) {
 }
 
 function resolveHandling(details, evidence) {
+  if (details.policy_decision) {
+    const decision = details.policy_decision;
+    const title = policyActions[decision.action];
+    const status = {met: "符合已校验条件", not_met: "条件不符合", needs_evidence: "待补齐证据"}[decision.status];
+    const steps = {
+      met: [`按${title}条款处理`, "请核对下方条件和原始证据后转入相应流程。"],
+      not_met: [`复核${title}条件`, "核对下方未满足的条件，再确定适用的流程。"],
+      needs_evidence: ["补齐政策所需证据", decision.missing_information.join("、")],
+    };
+    return {title: `${title} · ${status}`, summary: decision.conditions[0].detail,
+      step: steps[decision.status], warning: decision.status !== "met"};
+  }
   const codes = [...new Set(details.diagnoses.map(item => item.classification))];
   const warehouse = evidence.filter(item => item.source === "warehouse");
   const tracking = evidence.filter(item => item.source === "logistics");
@@ -268,6 +314,19 @@ function resolveHandling(details, evidence) {
   if (details.status === "answered" && details.retrieval_mode && evidence.some(item => item.policy)) {
     return {title: "已查到相关政策", summary: "展开适用政策查看条款原文。",
       step: ["按适用条款核对处理条件", "结合订单状态和政策原文，再决定是否转售后。"], warning: false};
+  }
+  if (details.query_plan?.goal === "policy" || details.retrieval_mode) {
+    return {title: "待核实适用政策", summary: details.missing_information.join("、") || details.summary,
+      step: ["核实适用政策", "请补充政策名称或处理场景，并核对本次已经取得的业务记录。"], warning: true};
+  }
+  const goal = details.query_plan?.goal;
+  const source = focusedSources[goal];
+  if (details.status === "answered" && source) {
+    const records = evidence.filter(item => item.source === source);
+    if (records.length) {
+      return {title: planGoals[goal], summary: evidenceOverview(records[0]), warning: false,
+        step: ["查看查询结果", "展开本次查询的原始记录。"], basis: records.map(item => item.evidence_id)};
+    }
   }
   if (codes.length === 1 && ["pickup_overdue", "awaiting_handoff"].includes(codes[0]) && missingHandoff && labelOnly) {
     return {
@@ -301,9 +360,9 @@ function showTrace(events) {
   const timeline = node("ol", undefined, "timeline");
   const tools = events.filter(event => event.kind === "tool");
   const ordered = [
-    ...events.filter(event => ["intent", "compliance", "plan"].includes(event.node_id)),
+    ...events.filter(event => ["model.intent", "intent", "compliance", "model.plan", "plan"].includes(event.node_id)),
     ...tools,
-    ...events.filter(event => event.node_id === "conclusion"),
+    ...events.filter(event => ["model.aftersales", "conclusion"].includes(event.node_id)),
   ];
   for (const event of ordered) {
     const entry = node("li");
@@ -359,6 +418,12 @@ async function showRun(run, token, generation) {
   if (run.status !== "completed" || !run.result) {
     show(body, node("h2", "订单排查结果"), node("p", run.error?.message || labels[run.status] || run.status, "empty"));
     show($("next-action"), node("p", emptyAction, "empty"));
+    if (run.status === "failed") {
+      const trace = await api(`/runs/${run.run_id}/trace`);
+      if (generation !== identityGeneration || token !== observation) return;
+      body.append(modelActivity(run, trace.events));
+      showTrace(trace.events);
+    }
     if (run.status === "interrupted") {
       body.append(control("继续排查", async () => {
         await api(`/runs/${run.run_id}/resume`, "POST");
@@ -377,10 +442,10 @@ async function showRun(run, token, generation) {
   const status = resolveHandling(details, evidence);
   const evidenceItems = normalizeEvidence(evidence);
   const rows = new Map(evidenceItems.map(item => [item.evidence_id, evidenceRow(item)]));
-  const basis = status.step === handling.awaiting_handoff && evidenceItems.some(item => item.source === "warehouse")
+  const basis = details.policy_decision?.evidence_ids || status.basis || (status.step === handling.awaiting_handoff && evidenceItems.some(item => item.source === "warehouse")
     ? evidenceItems.filter(item => ["warehouse", "logistics"].includes(item.source)).map(item => item.evidence_id)
     : status.title === "已查到相关政策" ? evidenceItems.filter(item => item.policy).map(item => item.evidence_id)
-      : details.status === "answered" ? details.diagnoses.flatMap(item => item.evidence_ids) : [];
+      : details.status === "answered" ? details.diagnoses.flatMap(item => item.evidence_ids) : []);
   const order = evidence.find(item => item.source === "order");
   const heading = node("div", undefined, "section-head");
   heading.append(node("h2", order ? `订单 ${order.resource_id}` : "排查结果"));
@@ -401,7 +466,17 @@ async function showRun(run, token, generation) {
   if (details.missing_information.length) {
     $("next-action").append(node("p", "待补充 " + details.missing_information.join("、"), "subtle"));
   }
-  body.append(agentProcess(details, trace.events, evidence, rows, order, status, basis));
+  body.append(agentProcess(run, trace.events, evidence, rows, order, status, basis));
+  if (details.policy_decision) {
+    body.append(node("h3", "政策条件核对"));
+    const conditions = node("ul", undefined, "agent-list");
+    for (const check of details.policy_decision.conditions) {
+      const item = node("li");
+      item.append(node("strong", `${policyConditions[check.status]} · ${check.label}`), node("span", check.detail));
+      conditions.append(item);
+    }
+    body.append(conditions);
+  }
   if (evidence.length) {
     const list = node("div", undefined, "evidence-list");
     const tableHeading = node("div", undefined, "evidence-header");
@@ -837,3 +912,18 @@ $("evaluation-filters").addEventListener("submit", event => {
 
 selectView();
 void signIn(localStorage.getItem("logimate:profile") || "alpha_operator");
+
+async function loadModelMode() {
+  try {
+    const response = await fetch("/health/live");
+    if (!response.ok) throw new Error("无法读取模型配置");
+    const {model_mode, model_id} = await response.json();
+    $("runtime-mode").textContent = model_mode === "deepseek"
+      ? `合成数据 · 模型 ${model_id}`
+      : model_mode === "demo" ? "合成数据 · 离线模式" : "合成数据 · 模型配置未知";
+  } catch {
+    $("runtime-mode").textContent = "合成数据 · 无法读取模型配置";
+  }
+}
+
+void loadModelMode();

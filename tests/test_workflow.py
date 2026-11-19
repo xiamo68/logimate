@@ -30,6 +30,7 @@ def test_clarifies_missing_order_without_tool_calls():
     }))
     assert output["result"]["status"] == "needs_clarification"
     assert output["result"]["evidence_ids"] == []
+    assert all(event["kind"] == "node" for event in output["trace"])
 
 
 @contextmanager
@@ -245,3 +246,94 @@ def test_deepseek_adapter_parses_json_contract_without_provider_calls():
 
     model = DeepSeek("deepseek-flash", "test-key", transport=httpx.MockTransport(reply))
     assert asyncio.run(model.identify("查询 LM-1001 的退款工单")).kind == "aftersales"
+
+
+def test_workflow_records_provider_calls_and_stops_on_failed_intent():
+    async def unexpected(*args):
+        raise AssertionError("A policy lookup without an order must not query MCP")
+
+    async def retrieve(*args):
+        return "hybrid", [{
+            "id": "refund", "document_id": "synthetic-policy", "version": "v1",
+            "title_path": ["发货前退款"], "excerpt": "未出库可取消订单。",
+            "effective_at": "2026-11-18T08:00:00Z",
+        }]
+
+    state = {"question": "没出库可以退款吗？", "trace": [],
+             "scope": {"tenant_id": "alpha", "user_id": "alpha-operator", "run_id": "test",
+                       "data_version": "synthetic-v1", "as_of": "2026-11-19T08:00:00Z"}}
+
+    def reply(request):
+        instructions = json.loads(request.content)["messages"][0]["content"]
+        payload = {"kind": "aftersales"} if instructions.startswith("Classify") else {
+            "status": "answered", "claim": "refund_before_outbound", "evidence_ids": ["refund"],
+        }
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(payload)}}]})
+
+    model = DeepSeek("deepseek-flash", "test-key", transport=httpx.MockTransport(reply))
+    output = asyncio.run(build_workflow(unexpected, model, retrieve=retrieve).ainvoke(state))
+    assert output["result"]["status"] == "answered"
+    assert [(event["node_id"], event["status"]) for event in output["trace"] if event["kind"] == "model"] == [
+        ("model.intent", "ok"), ("model.aftersales", "ok"),
+    ]
+
+    blocked = DeepSeek("deepseek-flash", "test-key",
+                       transport=httpx.MockTransport(lambda request: httpx.Response(429)))
+    failure = asyncio.run(build_workflow(unexpected, blocked, retrieve=unexpected).ainvoke(state))
+    assert failure["model_failed"]
+    assert "result" not in failure
+    assert [event["error_code"] for event in failure["trace"] if event["kind"] == "model"] == ["model_call_failed"]
+
+
+def test_query_plan_controls_mcp_and_policy_uses_order_evidence(tmp_path):
+    engine = store.database(f"sqlite:///{tmp_path / 'plans.db'}")
+    data = snapshot()
+    store.migrate(engine)
+    store.seed_database(engine, data, fingerprint(data))
+    secret = "test-mcp-plan-key-" * 3
+    clause = {"id": "refund", "document_id": "policies", "version": data["data_version"],
+              "title_path": ["发货前退款"], "effective_at": data["as_of"], "excerpt": "尚未出库可申请取消并退款。"}
+
+    async def retrieve(*_):
+        return "hybrid", [clause]
+
+    def reply(request):
+        system, user = json.loads(request.content)["messages"]
+        if system["content"].startswith("Classify"):
+            payload = {"kind": "aftersales" if "退款" in user["content"] else "logistics"}
+        elif system["content"].startswith("Plan"):
+            assert "json" in system["content"].lower()
+            inputs = json.loads(user["content"])
+            payload = {"goal": "order_status", "sources": []}
+            if inputs["intent"] == "aftersales":
+                payload = {"goal": "policy", "sources": ["warehouse", "logistics"]}
+            elif "无效" in inputs["question"]:
+                payload = {"goal": "diagnosis", "sources": []}
+        else:
+            assert json.loads(user["content"])["order_facts"]["warehouse_events"] == ["outbound"]
+            payload = {"status": "answered", "claim": "refund_before_outbound", "evidence_ids": ["refund"]}
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(payload)}}]})
+
+    model = DeepSeek("deepseek-flash", "test-key", transport=httpx.MockTransport(reply))
+    scope = {"tenant_id": "alpha", "user_id": "alpha-operator", "run_id": "test-plan",
+             "data_version": data["data_version"], "as_of": data["as_of"]}
+    try:
+        with serve(create_service(engine, secret)) as url:
+            graph = build_workflow(mcp_invoker(url, secret), model, retrieve=retrieve)
+            def run(question):
+                return asyncio.run(graph.ainvoke({"question": question, "trace": [], "scope": scope}))
+
+            order = run("LM-1001 只查订单状态")
+            assert order["result"]["query_plan"] == {"goal": "order_status", "sources": [], "origin": "model"}
+            assert [event["tool_name"] for event in order["trace"] if event["kind"] == "tool"] == ["order.get"]
+            fallback = run("LM-1001 无效计划")
+            assert fallback["result"]["query_plan"]["origin"] == "fallback"
+            assert any(event["node_id"] == "model.plan" and event["status"] == "error"
+                       for event in fallback["trace"])
+            policy = run("LM-1001 可以按发货前政策退款吗？")
+            decision = policy["result"]["policy_decision"]
+            assert decision["status"] == "not_met"
+            evidence = {item["evidence_id"]: item["source"] for item in policy["evidence"]}
+            assert {evidence[item] for item in decision["evidence_ids"]} == {"order", "warehouse", "logistics", "policy"}
+    finally:
+        engine.dispose()

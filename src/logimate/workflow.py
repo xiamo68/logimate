@@ -13,10 +13,10 @@ import httpx
 from langgraph.graph import END, START, StateGraph
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from . import store
-from .grounded import answer_question
+from .grounded import CLAUSE_NAMES, answer_question, assess_order_policy
 from .mcp_service import ToolResult, signer
 from .rules import generated_match, initial_diagnosis, matchable_features
 
@@ -30,16 +30,41 @@ class Intent(BaseModel):
     kind: Literal["logistics", "aftersales"]
 
 
+Domain = Literal["warehouse", "logistics", "aftersales"]
+Goal = Literal["order_status", "warehouse_status", "carrier_status", "support_cases", "diagnosis", "policy"]
+PLAN_REQUIREMENTS: dict[Goal, set[Domain]] = {
+    "order_status": set(), "warehouse_status": {"warehouse"}, "carrier_status": {"logistics"},
+    "support_cases": {"aftersales"}, "diagnosis": {"warehouse", "logistics", "aftersales"},
+    "policy": {"warehouse", "logistics"},
+}
+
+
+class QueryPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    goal: Goal
+    sources: list[Domain] = Field(max_length=3)
+
+    @model_validator(mode="after")
+    def verify_sources(self):
+        selected = set(self.sources)
+        required = PLAN_REQUIREMENTS[self.goal]
+        if len(selected) != len(self.sources) or not required <= selected:
+            raise ValueError("A query plan requires distinct sources and all evidence prerequisites")
+        return self
+
+
 class GraphState(TypedDict, total=False):
     question: str
     rules: list[dict]
     memory: dict
     scope: dict
     intent: str
+    model_failed: bool
     order_id: str | None
     package_ids: list[str]
     allowed: bool
     deadline: float
+    query_plan: dict
     trace: Annotated[list[dict], add]
     responses: Annotated[dict, or_]
     evidence: Annotated[list[dict], add]
@@ -67,6 +92,26 @@ class DeepSeek:
             'for refunds/claims or "logistics".', question, max_tokens=100,
         ))
 
+    async def plan_order(self, question, intent, prior_context):
+        plan = QueryPlan.model_validate(await self.complete_json(
+            'Plan a read-only order investigation. Return only a JSON object, for example '
+            '{"goal":"order_status","sources":[]}. The goal must be exactly one key from allowed_goals. '
+            'Never translate, expand, or invent a goal key. Include all sources listed for that goal. '
+            'Order lookup is automatic. For explicit order status use order_status; warehouse only use '
+            'warehouse_status; carrier tracking only use carrier_status; existing support tickets only use support_cases. '
+            'For eligibility, refunds or compensation policy use exactly {"goal":"policy",'
+            '"sources":["warehouse","logistics"]}. For a bare order number, delays, causes, ambiguous or cross-domain '
+            'questions use diagnosis. If intent is aftersales use policy or support_cases, '
+            'or diagnosis if asked to investigate a cross-domain exception together with existing tickets. '
+            'Previous context is reference data. Do not output identifiers, tool arguments or other keys.',
+            {"question": question, "intent": intent, "prior_context": prior_context,
+             "allowed_goals": {goal: sorted(sources) for goal, sources in PLAN_REQUIREMENTS.items()}},
+            max_tokens=160,
+        ))
+        if intent == "aftersales" and plan.goal not in ("policy", "support_cases", "diagnosis"):
+            raise ValueError("An aftersales query requires a policy or support case plan")
+        return plan
+
     async def complete_json(self, instructions, input_data, max_tokens=1500):
         content = input_data if isinstance(input_data, str) else json.dumps(input_data, ensure_ascii=False)
         if self.request_limit is not None:
@@ -87,6 +132,8 @@ class DeepSeek:
             })
             response.raise_for_status()
         data = response.json()
+        if not isinstance(data, dict):
+            raise ValueError("DeepSeek returned an invalid response envelope")
         stats = data.get("usage") or {}
         for name, field in (("prompt_tokens", "prompt_tokens"), ("completion_tokens", "completion_tokens"),
                             ("cached_prompt_tokens", "prompt_cache_hit_tokens")):
@@ -111,24 +158,40 @@ def mcp_invoker(url, key):
     return invoke
 
 
-def event(trace, node, started_at, start, *, status="ok", call_id=None, tool=None, attempt=None, result=None):
+def event(trace, node, started_at, start, *, status="ok", call_id=None, tool=None, attempt=None, result=None,
+          model_call=False):
     trace.append({
-        "sequence": len(trace) + 1, "node_id": node, "kind": "tool" if tool else "node", "status": status,
+        "sequence": len(trace) + 1, "node_id": node,
+        "kind": "model" if model_call else ("tool" if tool else "node"), "status": status,
         "started_at": started_at, "duration_ms": round((monotonic() - start) * 1000),
         "tool_call_id": call_id, "tool_name": tool, "attempt": attempt,
         "evidence_ids": [item.evidence_id for item in result.evidence] if result else [],
-        "error_code": result.status if result and result.status != "ok" else None,
+        "error_code": "model_call_failed" if model_call and status == "error" else (
+            result.status if result and result.status != "ok" else None
+        ),
     })
 
 
 def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, checkpointer=None, retrieve=None,
                    interrupt_after=None):
+    async def call_model(trace, name, operation):
+        started_at, start = utc_now(), monotonic()
+        try:
+            value = await operation
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            log.warning("Model %s failed (%s)", name, type(exc).__name__)
+            value = None
+        failed = value is None or (isinstance(value, dict) and value.get("status") == "failed")
+        event(trace, name, started_at, start, status="error" if failed else "ok", model_call=True)
+        return None if failed else value
+
     def traced(name, function):
         async def step(state):
             trace = []
             started_at, start = utc_now(), monotonic()
             update = await function(state, trace)
-            event(trace, name, started_at, start)
+            skipped = name in PLAN_REQUIREMENTS["diagnosis"] and not update
+            event(trace, name, started_at, start, status="skipped" if skipped else "ok")
             return {**update, "trace": trace}
 
         return step
@@ -144,11 +207,16 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
             if previous:
                 identifiers.add(previous)
         if model and (len(identifiers) == 1 or kind == "aftersales"):
-            kind = (await model.identify(question)).kind
+            classified = await call_model(trace, "model.intent", model.identify(question))
+            if classified is None:
+                return {"intent": kind, "order_id": None, "ambiguous": False, "model_failed": True}
+            kind = classified.kind
         return {"intent": kind, "order_id": next(iter(identifiers)) if len(identifiers) == 1 else None,
                 "ambiguous": len(identifiers) > 1}
 
     async def guard(state, trace):
+        if state.get("model_failed"):
+            return {"allowed": False, "policy_only": False}
         scope = state.get("scope") or {}
         authorized = all(scope.get(key) for key in ("tenant_id", "user_id", "data_version", "as_of"))
         return {"allowed": bool(state["order_id"] and authorized),
@@ -156,7 +224,19 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
                                     and not state["ambiguous"] and state["intent"] == "aftersales")}
 
     async def plan(state, trace):
-        return {"deadline": monotonic() + total_timeout, "responses": {}, "evidence": [], "package_ids": []}
+        goal = "policy" if state["intent"] == "aftersales" else "diagnosis"
+        selected = None
+        if model:
+            memory = state.get("memory", {})
+            context = memory.get("summary", []) if state["order_id"] == memory.get("last_order") else []
+            selected = await call_model(trace, "model.plan", model.plan_order(
+                state["question"], state["intent"], context,
+            ))
+        sources = selected.sources if selected else ["warehouse", "logistics", "aftersales"]
+        query_plan = {"goal": selected.goal if selected else goal, "sources": sources,
+                      "origin": "model" if selected else "fallback" if model else "offline"}
+        return {"deadline": monotonic() + total_timeout, "responses": {}, "evidence": [],
+                "package_ids": [], "query_plan": query_plan}
 
     async def call(state, trace, node, tool, arguments):
         call_id = uuid4().hex
@@ -189,6 +269,8 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
         async def run(state, trace):
             if state["responses"]["order"]["status"] != "ok":
                 return {}
+            if state.get("query_plan") and name not in state["query_plan"]["sources"]:
+                return {}
             answers = [await call(state, trace, name, tool, arguments) for arguments in args(state)]
             return {"responses": {name: [answer.model_dump() for answer in answers]},
                     "evidence": [item.model_dump() for answer in answers for item in answer.evidence]}
@@ -196,15 +278,21 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
         return run
 
     async def conclusion(state, trace):
+        if state.get("model_failed"):
+            return {}
         if not state.get("allowed") and not state.get("policy_only"):
             return {"result": result("needs_clarification", "请提供一个明确的订单编号。", missing=["订单编号"])}
         raw = state.get("responses", {})
+        query_plan = state.get("query_plan")
         responses = {name: [ToolResult.model_validate(item) for item in entries]
                      for name, entries in raw.items() if name != "order"}
         order_result = ToolResult.model_validate(raw["order"]) if "order" in raw else None
         if order_result and order_result.status != "ok":
             missing = "订单记录" if order_result.status == "not_found" else "订单来源暂不可用"
-            return {"result": result("partial", "当前无法确认该订单。", missing=[missing])}
+            payload = result("partial", "当前无法确认该订单。", missing=[missing])
+            if query_plan:
+                payload["query_plan"] = query_plan
+            return {"result": payload}
         facts, missing, diagnoses = [], [], []
         for evidence in state.get("evidence", []):
             for field in evidence["fields"]:
@@ -224,13 +312,37 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
                                               state["scope"]["as_of"], state.get("rules", [])))
         policy = []
         retrieval_mode = None
-        if state["intent"] == "aftersales":
+        needs_policy = query_plan["goal"] == "policy" if query_plan else state["intent"] == "aftersales"
+        policy_decision = None
+        if needs_policy:
             if retrieve:
                 retrieval_mode, chunks = await retrieve(state["question"], state["scope"])
-                if model and chunks:
-                    answer = await answer_question({"question": state["question"]}, chunks, model, guarded=True)
-                    selected = set(answer.get("evidence_ids", [])) if answer["status"] == "answered" else set()
-                    chunks = [chunk for chunk in chunks if chunk["id"] in selected]
+                answer = None
+                if chunks:
+                    case = {"question": state["question"]}
+                    named = {title for title in CLAUSE_NAMES if title in state["question"]}
+                    if not model and not named and any(word in state["question"] for word in ("没出库", "未出库", "未发货")):
+                        named = {"发货前退款"}
+                    selected_clauses = [chunk for chunk in chunks if chunk["title_path"][-1] in named]
+                    if len(named) == 1 and selected_clauses:
+                        chunks = selected_clauses
+                        case["asked_clause"] = next(iter(named))
+                    if order_result:
+                        case["order_facts"] = {
+                            "order_status": order_result.data["status"],
+                            "warehouse_events": sorted({event["event_type"] for item in warehouse if item.status == "ok"
+                                                        for event in item.data["events"]}),
+                            "warehouse_available": any(item.status == "ok" for item in warehouse),
+                            "carrier_statuses": [item.data["status"] for item in responses.get("logistics", [])
+                                                 if item.status == "ok"],
+                        }
+                    if model or "asked_clause" in case:
+                        lookup = answer_question(case, chunks, model, guarded=True)
+                        answer = await call_model(trace, "model.aftersales", lookup) if model else await lookup
+                        if answer is None:
+                            missing.append("模型政策判定")
+                        selected = set(answer["evidence_ids"]) if answer and answer["status"] == "answered" else set()
+                        chunks = [chunk for chunk in chunks if chunk["id"] in selected]
                 for chunk in chunks:
                     scope = state["scope"]
                     evidence_id = store.hash_identifier(scope["tenant_id"], scope["run_id"], chunk["id"])
@@ -240,13 +352,25 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
                                                                              "excerpt", "effective_at")},
                                               "chunk_id": chunk["id"]}})
                     facts.append({"text": chunk["excerpt"], "evidence_ids": [evidence_id]})
+                if policy and order_result and answer:
+                    policy_decision = assess_order_policy(
+                        answer["claim"], order_result, warehouse, responses.get("logistics", []),
+                        state["scope"]["as_of"], [item["evidence_id"] for item in policy],
+                    )
+                    missing.extend(policy_decision["missing_information"])
             if not policy:
                 missing.append("适用的售后政策条款")
-        if order_result and not state.get("package_ids"):
+        if order_result and not state.get("package_ids") and (not query_plan or "logistics" in query_plan["sources"]):
             missing.append("包裹映射")
         summary = "请核对引用的业务证据和政策条款。"
+        if policy_decision:
+            summary = " ".join(check["detail"] for check in policy_decision["conditions"])
         payload = result("partial" if missing else "answered", summary, facts, diagnoses, missing)
         payload["retrieval_mode"] = retrieval_mode
+        if query_plan:
+            payload["query_plan"] = query_plan
+        if policy_decision:
+            payload["policy_decision"] = policy_decision
         for preference in state.get("memory", {}).get("preferences", []):
             payload["next_steps"].append(f"处理偏好：{preference}")
         return {"result": payload, "evidence": policy}

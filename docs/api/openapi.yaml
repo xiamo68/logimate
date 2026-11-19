@@ -190,7 +190,7 @@ paths:
     get:
       tags:
         - "排查"
-      summary: "查看运行节点和工具轨迹"
+      summary: "查看运行节点、模型和工具轨迹"
       operationId: "getRunTrace"
       x-roles:
         - "operator"
@@ -1157,6 +1157,58 @@ components:
           anyOf:
             - "$ref": "#/components/schemas/RetrievalMode"
             - type: "null"
+        query_plan:
+          "$ref": "#/components/schemas/QueryPlan"
+        policy_decision:
+          "$ref": "#/components/schemas/PolicyDecision"
+    QueryPlan:
+      type: "object"
+      additionalProperties: false
+      required: ["goal", "sources", "origin"]
+      properties:
+        goal:
+          enum: ["order_status", "warehouse_status", "carrier_status", "support_cases", "diagnosis", "policy"]
+        sources:
+          type: "array"
+          description: "订单读取始终在先，本字段列出计划采用的附加来源。"
+          uniqueItems: true
+          maxItems: 3
+          items:
+            enum: ["warehouse", "logistics", "aftersales"]
+        origin:
+          enum: ["model", "fallback", "offline"]
+    PolicyDecision:
+      type: "object"
+      additionalProperties: false
+      required: ["action", "status", "conditions", "missing_information", "evidence_ids"]
+      properties:
+        action:
+          enum: ["refund_before_outbound", "refund_in_transit", "pickup_overdue_check", "delivery_dispute_check"]
+        status:
+          enum: ["met", "not_met", "needs_evidence"]
+        conditions:
+          type: "array"
+          minItems: 1
+          items:
+            type: "object"
+            additionalProperties: false
+            required: ["label", "status", "detail"]
+            properties:
+              label:
+                type: "string"
+              status:
+                enum: ["met", "not_met", "unknown"]
+              detail:
+                type: "string"
+        missing_information:
+          type: "array"
+          items:
+            type: "string"
+        evidence_ids:
+          type: "array"
+          uniqueItems: true
+          items:
+            "$ref": "#/components/schemas/Id"
     Run:
       type: "object"
       additionalProperties: false
@@ -1180,6 +1232,9 @@ components:
           "$ref": "#/components/schemas/RunStatus"
         mode:
           "$ref": "#/components/schemas/ModelMode"
+        model_id:
+          type: ["string", "null"]
+          description: "运行开始时记录的模型 ID。历史运行可能缺少此字段。"
         data_version:
           "$ref": "#/components/schemas/Id"
         as_of:
@@ -1222,6 +1277,7 @@ components:
           enum:
             - "node"
             - "tool"
+            - "model"
         status:
           type: "string"
           enum:

@@ -11,6 +11,40 @@ from .retrieval import PREFERENCE_COLLECTION
 from .workflow import ORDER_ID
 
 log = logging.getLogger(__name__)
+WINDOW_SIZE = 12
+WINDOW_TOKEN_BUDGET = 3072
+SUMMARY_TOKEN_BUDGET = 1024
+MEMORY_FORMAT = 2
+
+
+def token_upper_bound(payload):
+    # Serialized UTF-8 bytes conservatively bound the ordinary tokens of a byte-based tokenizer.
+    return len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+
+def compact_history(rows):
+    window = deque()
+    summary = deque()
+    summary_order_ids = set()
+    for row in rows:
+        window.append(row)
+        while len(window) > WINDOW_SIZE or token_upper_bound([item.question for item in window]) > WINDOW_TOKEN_BUDGET:
+            previous = window.popleft()
+            orders = sorted(set(ORDER_ID.findall(previous.question)))
+            if len(summary_order_ids) < 2:
+                summary_order_ids = set(sorted(summary_order_ids.union(orders))[:2])
+            outcome = previous.result or {}
+            summary.append({
+                "order_ids": orders[:2],
+                "question": previous.question.encode("utf-8")[:160].decode("utf-8", errors="ignore"),
+                "result_status": outcome.get("status"),
+                "diagnoses": [item["classification"] for item in outcome.get("diagnoses", [])[:2]],
+                "evidence_ids": outcome.get("evidence_ids", [])[:3],
+            })
+            while token_upper_bound(list(summary)) > SUMMARY_TOKEN_BUDGET:
+                summary.popleft()
+    return {"window": [item.question for item in window], "summary": list(summary),
+            "summary_order_ids": sorted(summary_order_ids)}
 
 
 def preference_scope(actor):
@@ -44,7 +78,7 @@ class SessionMemory:
 
     def history(self, actor, session_id, excluding=None):
         key = f"{self.namespace}:session:{actor['tenant_id']}:{actor['user_id']}:{session_id}"
-        query = select(store.runs.c.run_id, store.runs.c.question).filter_by(
+        query = select(store.runs.c.run_id, store.runs.c.question, store.runs.c.result).filter_by(
             **preference_scope(actor), session_id=session_id, status="completed",
         )
         if excluding is not None:
@@ -58,17 +92,11 @@ class SessionMemory:
                 raw = self.redis.get(key)
                 if raw:
                     cached = json.loads(raw)
-                    if cached["head"] == head:
+                    if cached.get("format") == MEMORY_FORMAT and cached["head"] == head:
                         return cached
-            except (RedisError, ValueError, KeyError):
+            except (RedisError, ValueError, KeyError, AttributeError):
                 log.warning("Session cache unavailable; rebuilding from database")
-        window = deque(maxlen=12)
-        summary = []
-        for row in rows:
-            if len(window) == window.maxlen:
-                summary.extend(ORDER_ID.findall(window[0]))
-            window.append(row.question[:2000])
-        snapshot = {"head": head, "window": list(window), "summary_order_ids": list(dict.fromkeys(summary))[-12:]}
+        snapshot = {"format": MEMORY_FORMAT, "head": head, **compact_history(rows)}
         if self.redis:
             try:
                 self.redis.set(key, json.dumps(snapshot, ensure_ascii=False), ex=3600)
@@ -88,7 +116,8 @@ class SessionMemory:
         else:
             if len(history["summary_order_ids"]) == 1:
                 last_order = history["summary_order_ids"][0]
-        return {"last_order": last_order, "preferences": self.recall(actor, question)}
+        summary = [item for item in history["summary"] if last_order and item["order_ids"] == [last_order]]
+        return {"last_order": last_order, "summary": summary, "preferences": self.recall(actor, question)}
 
     def recall(self, actor, question):
         if not self.vectors:

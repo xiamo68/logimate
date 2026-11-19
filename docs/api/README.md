@@ -10,6 +10,8 @@
 - 除登录外，写操作接受可选 `Idempotency-Key`，前端生成并在本次操作重试时复用。以租户、用户、HTTP 方法和具体资源路径去重。同键同规范化输入返回原操作的状态码及正文，同键不同输入返回 409。去重和业务写入在同一事务提交。首次提交回放或排查任务返回 202，客户端按 ID 查询状态。
 - 列表使用 `limit` 和 `cursor`，默认 20、最多 100 条。游标由上一页 `next_cursor` 提供，并绑定主体和过滤条件；末页为 `null`。会话详情按消息顺序向后翻页，其他列表按创建时间和 ID 新到旧。
 - 运行在 `queued`、`running`、`completed`、`failed` 或 `interrupted` 状态。中断后通过原运行 ID 续跑。运行错误使用 `error`。成功完成后，`result.status` 区分 `answered`、`partial`、`needs_clarification`，证据与轨迹随完成结果持久化。网页每秒轮询，遇终态停止。
+- 新运行的 `result.query_plan` 记录目标、附加业务来源与计划来源 `model`、`fallback` 或 `offline`。订单查询固定先执行；实际调用在 `/runs/{id}/trace` 核对。
+- 带订单的售后排查若取得适用条款，`result.policy_decision` 返回政策动作、整体状态与逐项条件、待补信息和证据 ID。政策条件状态与运行状态分别表达，例如已有出库记录时可成功完成查询，条件状态为 `not_met`。这些字段在旧运行记录中可能缺省。
 - 版本详情包含 `reviewed_report_id` 与 `activation_events`，分别用于定位最近审核决定及历史激活记录。复测页从 `GET /evaluations` 获取对照组和可展开的合成 `case_examples`。完整逐案例归档用 `artifact_path` 指明项目相对位置。
 
 ## 权限与错误

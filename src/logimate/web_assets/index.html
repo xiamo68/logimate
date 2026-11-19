@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#132031">
   <title>LogiMate · 供应链排查工作台</title>
-  <link rel="stylesheet" href="/assets/workbench.css?v=agent-process">
-  <script type="module" src="/assets/workbench.js?v=agent-process"></script>
+  <link rel="stylesheet" href="/assets/workbench.css?v=deepseek-runtime">
+  <script type="module" src="/assets/workbench.js?v=agent-policy-plan-v3"></script>
 </head>
 <body>
   <a class="skip" href="#main">跳到工作区</a>
@@ -35,7 +35,7 @@
       <section id="investigate" aria-labelledby="investigate-heading">
         <div class="page-heading"><div><h1 id="investigate-heading">订单异常排查</h1>
           <p>定位履约卡点，核对业务记录并确定下一步处理动作。</p></div>
-          <span class="data-scope">本地 · 合成数据</span></div>
+          <span class="data-scope" id="runtime-mode">合成数据 · 正在读取模型配置</span></div>
         <form class="panel question" id="investigate-form">
           <div class="lookup-row">
             <label for="order-number">订单号<input id="order-number" name="order" placeholder="输入订单号" maxlength="64"></label>

@@ -99,7 +99,7 @@ def create_app(settings=None, engine=None):
 
     @app.get("/health/live")
     def live():
-        return {"status": "ok"}
+        return {"status": "ok", **app.state.model_runtime}
 
     @app.get("/health/ready")
     def ready(response: Response):

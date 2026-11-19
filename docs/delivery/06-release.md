@@ -1,6 +1,6 @@
 # 阶段 06 · 完整验收、真实评测与 GitHub 发布
 
-状态 · 无密钥与真实模型验收完成，等待 GitHub 发布目标
+状态 · 无密钥与真实模型验收完成。公开仓库见 [GitHub](https://github.com/xiamo68/logimate)。
 
 ## 进入条件
 
@@ -30,7 +30,7 @@
 | 执行命令与退出状态 | `uv sync --locked --python 3.12`、原生服务下 `uv run --locked pytest -q` 的 15 项均通过。三个评测 CLI 执行成功，OpenAPI 3.1 校验通过 |
 | 实际结果和证据位置 | Chrome 桌面与窄屏复跑 LM-1001、策略改进、发布与回滚、售后混合检索和续跑。已复算三个报告的样本量和错误数，归档在本机 `.logimate/evaluations/` |
 | 发布前检查 | 已核对提交历史与公开评测文件中的常见 API token 和私钥标记。MCE 论文已注明，项目采用 MIT 许可证 |
-| 未完成事项及影响 | GitHub 目标仓库和可用的发布授权待落实。公开发布与远程克隆验证待执行 |
+| 公开发布目标 | `xiamo68/logimate`，默认分支 `main`，采用 MIT 许可证 |
 
 ## 无密钥冻结集结果
 
@@ -55,3 +55,28 @@
 成功批次中，RAG 请求 60 次，事实对照请求 120 次，生成候选请求 3 次，在线售后冒烟请求 2 次，物流回放无外部调用。RAG 与事实对照合计记录输入 75,471 token、输出 9,445 token，其中缓存命中输入 12,800 token。首次诊断尝试另计。真实评测在修复分支工作区执行，归档保留原始 `code_ref` 和 `-dirty` 标记，元层修复见 `30babad`。
 
 逐案例归档位于[评测结果](../qa/results/README.md)。结论限于合成数据与结构化政策动作评分。简历可写实测的物流改善，售后准确率与幻觉对比均使用本页数值。
+
+## 在线工作台复验
+
+本地验收工作台启用 `deepseek-flash`，使用 SQLite 合成数据、独立 MCP HTTP 进程与 Milvus Lite。通过 HTTP 提交并核对两次运行的持久化轨迹。
+
+| 场景 | 运行 ID | 实际模型调用 |
+| --- | --- | --- |
+| 查询 LM-1001 | `b66e7e75e3164764b91cdfa374f98b67` | 意图识别成功，1250 ms。订单、售后、物流、仓储工具各自用时 47、94、94、79 ms |
+| LM-1001 未出库退款政策 | `65410f888182404a87237dadf8a2e195` | 意图识别成功，1016 ms。混合检索后政策判定成功，1453 ms |
+
+在浏览器重新提交 LM-1001，「Agent 排查过程」显示 `deepseek-flash · 意图识别 成功（1438 ms）`。此前离线运行显示「离线排查 · 未调用模型」。本轮 `uv run --locked pytest -q -rs` 通过 16 项，原生 Redis 集成测试跳过。已核对 JavaScript 语法和 OpenAPI 中新增的轨迹类别及运行字段。
+
+## 查询规划、售后条件和会话摘要验收
+
+Windows 原生 API/MCP、SQLite 合成业务库、原生 Redis、Milvus Lite、`deepseek-flash`。通过真实 API 提交以下三次排查，复核结果、实际 MCP 调用及模型轨迹。
+
+| 场景 | 运行 ID | 已观察结果 |
+| --- | --- | --- |
+| LM-1001 只查订单状态 | `2277652ba2754ac28ad1359de30766a4` | DeepSeek 返回 `order_status`，实际仅调用 `order.get` |
+| LM-1001 发货前退款 | `222b482191c044859ffb4373bd8aa514` | DeepSeek 返回政策计划并选中发货前退款，现有出库记录使条件不符合 |
+| LM-1003 在途退款 | `eeb023f4f62248d8bc492bf98ae1e687` | 已确认承运商揽收，并提示补查退回轨迹 |
+
+在浏览器提交 LM-1001 发货前退款问题，核对查询计划、条件状态及「查看处理依据」展开的四条原始记录。使用 `LOGIMATE_MODE=demo`、`LOGIMATE_STAGE04_REDIS=redis://127.0.0.1:6379/14` 执行 `uv run --locked pytest -q -rs`，20 项通过。覆盖真实 Redis 与 Milvus 的记忆重建、摘要预算、MCP 计划约束、分块保留句子边界。OpenAPI 3.1 校验通过，真实 HTTP 返回通过 Run 和 TraceEvent schema 校验，JavaScript 语法检查通过。
+
+首次在线规划调用未满足 DeepSeek JSON 输出的提示词要求。显式要求 JSON 对象和有限枚举后完成真实调用复验。既有冻结集评测仍引用原始运行与分母。 [DeepSeek JSON 输出文档](https://api-docs.deepseek.com/zh-cn/guides/json_mode/)

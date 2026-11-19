@@ -34,6 +34,8 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
     limit = os.getenv("LOGIMATE_DEEPSEEK_MAX_REQUESTS")
     model = DeepSeek(os.getenv("DEEPSEEK_MODEL"), os.getenv("DEEPSEEK_API_KEY"),
                      request_limit=int(limit) if limit else None) if mode == "deepseek" else None
+    model_id = model.model if model else None
+    app.state.model_runtime = {"model_mode": mode, "model_id": model_id}
     invoke = mcp_invoker(os.getenv("LOGIMATE_MCP_URL", "http://127.0.0.1:8011/mcp"), signing_key) if signing_key else None
 
     def scoped(table, actor):
@@ -49,8 +51,9 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
         return row
 
     def finish(run_id, output=None, failure=None):
+        trace = [{**event, "sequence": index} for index, event in enumerate((output or {}).get("trace", []), 1)]
         with engine.begin() as connection:
-            if output:
+            if failure is None:
                 records = {item["evidence_id"]: item for item in output.get("evidence", [])}
                 if records:
                     connection.execute(insert(store.evidence), [
@@ -58,12 +61,11 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
                         for evidence_id, evidence in records.items()
                     ])
                 connection.execute(update(store.runs).where(store.runs.c.run_id == run_id).values(
-                    status="completed", result=output["result"],
-                    trace=[{**event, "sequence": index} for index, event in enumerate(output["trace"], 1)],
+                    status="completed", result=output["result"], trace=trace,
                 ))
             else:
                 connection.execute(update(store.runs).where(store.runs.c.run_id == run_id).values(
-                    status="failed", error=failure,
+                    status="failed", error=failure, trace=trace,
                 ))
 
     def mark_started(run_id):
@@ -102,7 +104,11 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
                         output = await graph.ainvoke(await initial(), config)
             else:
                 output = await build_workflow(invoke, model, retrieve=runtime.retrieve).ainvoke(await initial())
-            await run_in_threadpool(finish, run_id, output)
+            failure = None
+            if output.get("model_failed"):
+                failure = {"code": "model_call_failed", "message": "DeepSeek 意图识别失败，请重新排查。",
+                           "request_id": uuid4().hex}
+            await run_in_threadpool(finish, run_id, output, failure)
         except Exception as exc:
             log.warning("Run %s failed (%s)", run_id, type(exc).__name__)
             await run_in_threadpool(finish, run_id, failure={
@@ -130,7 +136,7 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
                 record = {"run_id": uuid4().hex, "session_id": id, "tenant_id": actor["tenant_id"],
                           "user_id": actor["user_id"], "question": body.question, "status": "queued",
                           "idempotency_key": digest, "snapshot": {
-                              "mode": mode, "data_version": settings.data_version, "as_of": as_of,
+                              "mode": mode, "model_id": model_id, "data_version": settings.data_version, "as_of": as_of,
                               "versions": versions, "created_at": utc_now(),
                           }}
                 connection.execute(insert(store.runs).values(**record))
@@ -167,6 +173,8 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
         record = run_row(id, actor)
         if record["snapshot"]["mode"] != mode:
             raise error(409, "invalid_state", "当前模型模式与原运行不同。")
+        if record["snapshot"].get("model_id", model_id) != model_id:
+            raise error(409, "invalid_state", "当前模型与原运行不同。")
         receipt_id = store.hash_identifier(actor["tenant_id"], actor["user_id"], "resume", id, key) if key else None
         accepted = {"run_id": id, "status": "queued"}
         with engine.begin() as connection:

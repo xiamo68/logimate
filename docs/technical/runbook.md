@@ -1,6 +1,6 @@
 # LogiMate 本地运行手册
 
-当前提供中文演示工作台、原生后端服务、冻结集评测命令和评测归档入口。
+当前提供中文排查工作台、DeepSeek 在线调用、原生后端服务及冻结集评测归档。
 
 ## 环境与配置
 
@@ -8,7 +8,7 @@ Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和
 
 | 配置 | 用途 | 约定 |
 | --- | --- | --- |
-| `LOGIMATE_MODE` | 模型运行模式 | 缺省 `demo`；显式选择 `deepseek` 时启用真实调用 |
+| `LOGIMATE_MODE` | 模型运行模式 | 示例配置使用 `deepseek`。离线复现可显式设置为 `demo`，未配置时同样按离线模式启动 |
 | `LOGIMATE_DEMO_SIGN_IN` | 回环地址演示入口 | 仅为本地演示启用；启动时校验配置的外部地址是回环地址 |
 | `LOGIMATE_PUBLIC_ORIGIN` | 同源 HTTP 地址 | 默认 `http://127.0.0.1:8010`，用于校验写请求来源 |
 | `LOGIMATE_DATA_VERSION` | 合成业务数据版本 | 与应用种子和索引版本一起解析；运行开始时冻结 |
@@ -18,7 +18,7 @@ Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和
 | `LOGIMATE_CHECKPOINT_DB` | LangGraph SQLite 检查点 | 默认示例为 `.logimate/checkpoints.db`，续跑期间保留该文件 |
 | `LOGIMATE_EMBEDDING_MODEL`、`LOGIMATE_MODEL_CACHE` | 中文编码模型与缓存目录 | 默认 `BAAI/bge-small-zh-v1.5` 与 `.logimate/models`，首次构建需要下载 |
 | `LOGIMATE_EVALUATION_DIR` | 已归档的评测摘要目录 | 默认为 `.logimate/evaluations`，读取该目录下的 `evaluation-*.json` |
-| `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | 只在 `deepseek` 模式提供。启动检查字段完整性，评测记录使用的模型 ID |
+| `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | `deepseek` 模式启动时两项均必填。每次运行和评测记录使用的模型 ID |
 
 准备一个专用于 LogiMate 的 MySQL 数据库和用户，字符集选 `utf8mb4`。将仓库的 `.env.example` 复制为 `.env`，填入形如 `mysql+pymysql://用户:密码@127.0.0.1:3306/数据库` 的 DSN 和随机会话密钥。用户名或密码中用于 URL 的特殊字符需要编码。本机凭据和模型调用日志留在本机。付费运行前估算费用并使用已获授权的额度。
 
@@ -47,7 +47,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8010/health/ready'
 uv run --locked --env-file .env uvicorn logimate.mcp_service:create_app --factory --host 127.0.0.1 --port 8011
 ```
 
-无密钥模式通过 HTTP 联调说明登录、创建会话并提交 `LM-1001`。运行完成后查看结论、轨迹和证据明细。DeepSeek 模式需显式配置 `LOGIMATE_MODE=deepseek`、`DEEPSEEK_MODEL` 与 `DEEPSEEK_API_KEY`。当前适配器在意图识别节点请求模型，工具授权、取证和诊断在本地执行。正式真实模型验收和费用授权仍在最终阶段。
+填入 DeepSeek 凭据后，在工作台提交 `LM-1001` 验证在线意图识别。「Agent 排查过程」显示模型名称、调用结果和耗时。`/health/live` 返回当前配置的 `model_mode` 和 `model_id`；单次运行的实际调用以轨迹中的 `kind: model` 为准。工具授权、MCP 取证和异常规则诊断由应用执行。售后问题检索到政策片段后会再次请求模型判定适用条款，应用校验返回的证据引用。意图识别失败时，运行保存失败状态和调用轨迹；售后政策判定失败时，运行保留已取得的业务证据并标记待补充。
 
 ## 阶段 03 规则治理
 
@@ -68,9 +68,9 @@ uv run --locked --env-file .env logimate migrate
 uv run --locked --env-file .env logimate index-policies --data-version synthetic-v1
 ```
 
-询问退款或赔付时，可从证据接口读取政策版本、条款和原文。稠密路径超时后检查 `retrieval_mode` 是否为 `keyword_only`。Redis 缓存不可用时由 MySQL 重建近期问题窗口和旧订单号摘要。偏好索引失败可在应用停止后运行 `logimate index-preferences`。更换向量模型时使用独立索引目录并重新建立索引。
+在补充问题中输入「LM-1001 只查订单状态」，核对实际工具轨迹只有订单查询。再输入「LM-1001 能按发货前退款条款取消并退款吗？」。该合成订单有出库记录，工作台显示条件不符合，并可从处理依据跳到条款和业务原文。稠密路径超时后检查 `retrieval_mode` 是否为 `keyword_only`。Redis 缓存不可用时由 MySQL 重建经过 token 预算约束的问题窗口和结构化摘要。偏好索引失败可在应用停止后运行 `logimate index-preferences`。更换向量模型时使用独立索引目录并重新建立索引。
 
-主应用使用单进程运行。中断后的运行在启动时标记为 `interrupted`，按原 ID 调用 `POST /runs/{id}/resume`。恢复保留原模型模式、合成快照和规则版本。长期保留同一个检查点文件，清空它会失去已执行节点的进度。
+主应用使用单进程运行。中断后的运行在启动时标记为 `interrupted`，按原 ID 调用 `POST /runs/{id}/resume`。恢复保留原模型模式、记录的模型 ID、合成快照和规则版本。长期保留同一个检查点文件，清空它会失去已执行节点的进度。
 
 ## 阶段 05 演示工作台
 
@@ -95,7 +95,7 @@ uv run --locked --env-file .env logimate eval grounding
 
 命令默认输出至 `.logimate/evaluations`。每次生成一份可在工作台读取的 `evaluation-*.json` 摘要及一份 `cases-*.json` 明细。最终冻结集只供评测读取，生成和筛选候选继续使用改进集与开发验证集。详见[验收口径](../qa/acceptance.md)。
 
-真实评测确认费用后启用 `deepseek` 模式，使用同一模型生成 B/C。为临时验收应用配置 `LOGIMATE_DEEPSEEK_MAX_REQUESTS=2`，离线 worker 配置为 4，其中一次用于元层格式校验失败后的重试。物流实时调用数为零，它离线读取 B/C 产物。RAG 命令使用 `--mode deepseek --max-requests 60`，事实校验对照用 `--mode deepseek --max-requests 120`。应用的真实售后回答经 DeepSeek 选择候选条款并通过证据校验，显示的引用来自政策原文。每次模型评测保存实际请求及 token 计数。
+真实评测确认费用后启用 `deepseek` 模式，使用同一模型生成 B/C。应用和 worker 可分别使用 `LOGIMATE_DEEPSEEK_MAX_REQUESTS` 指定进程级调用上限。带订单的售后排查最多依次调用意图识别、查询规划和条款选择，因此只验证一次完整流程时也需预留至少 3 次。物流冻结集回放离线读取 B/C 产物。RAG 命令使用 `--mode deepseek --max-requests 60`，事实校验对照用 `--mode deepseek --max-requests 120`。每次模型评测保存实际请求及 token 计数。
 
 ## 诊断与恢复
 

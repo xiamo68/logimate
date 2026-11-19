@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 from time import monotonic, sleep
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from sqlalchemy import insert, select
 from logimate import store
 from logimate.api import Settings, create_app
 from logimate.mcp_service import create_service
+from logimate.memory import SUMMARY_TOKEN_BUDGET, WINDOW_TOKEN_BUDGET, compact_history, token_upper_bound
 from logimate.retrieval import Vectors, hybrid_retrieve, index_policies, keyword_search, policy_chunks
 from logimate.seed import fingerprint, snapshot
 from logimate.workflow import utc_now
@@ -48,6 +50,29 @@ def test_bm25_fallback_returns_before_vector_branch_finishes():
         assert result == chunks
 
     asyncio.run(lookup())
+
+
+def test_policy_chunk_preserves_sentence_and_title():
+    first = "发货前退款流程" * 42 + "。"
+    second = "原路退回的条件" * 38 + "。"
+    chunks = policy_chunks({"document_id": "refund", "title": "退款政策", "body":
+                            f"## 发货前退款\n{first}{second}"}, "v1", "2026-11-19T08:00:00Z")
+    assert [item["excerpt"] for item in chunks] == [first, second]
+    assert all(item["title_path"] == ["退款政策", "发货前退款"] for item in chunks)
+
+
+def test_session_memory_compacts_before_message_limit_and_keeps_evidence():
+    older = SimpleNamespace(question="LM-1001 " + "交接核实" * 260, result={
+        "status": "answered", "diagnoses": [{"classification": "awaiting_handoff"}], "evidence_ids": ["evidence-1"],
+    })
+    latest = SimpleNamespace(question="检查" * 450, result=None)
+    memory = compact_history([older, latest])
+    assert memory["window"] == [latest.question]
+    assert memory["summary_order_ids"] == ["LM-1001"]
+    assert memory["summary"][0]["diagnoses"] == ["awaiting_handoff"]
+    assert memory["summary"][0]["evidence_ids"] == ["evidence-1"]
+    assert token_upper_bound(memory["window"]) <= WINDOW_TOKEN_BUDGET
+    assert token_upper_bound(memory["summary"]) <= SUMMARY_TOKEN_BUDGET
 
 
 def test_run_resume_uses_saved_order_step(seeded, tmp_path, monkeypatch):
@@ -102,6 +127,7 @@ asyncio.run(checkpoint_order())
 @pytest.mark.skipif(not os.getenv("LOGIMATE_STAGE04_REDIS"), reason="Requires a local native Redis")
 def test_native_milvus_and_redis_across_sessions(seeded, tmp_path, monkeypatch):
     engine, data = seeded
+    monkeypatch.setenv("LOGIMATE_MODE", "demo")
     location = str(tmp_path / "milvus.db")
     monkeypatch.setenv("LOGIMATE_MILVUS_URI", location)
     monkeypatch.setenv("REDIS_URL", os.environ["LOGIMATE_STAGE04_REDIS"])
