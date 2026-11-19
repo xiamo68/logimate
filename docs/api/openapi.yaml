@@ -1,0 +1,2017 @@
+openapi: "3.1.0"
+info:
+  title: "LogiMate HTTP API"
+  version: "0.1.0"
+  description: "已确认的接口设计合同。配套联调说明记录鉴权、幂等和状态转换。"
+servers:
+  - url: "http://127.0.0.1:8000/api/v1"
+    description: "本地 Docker Compose 演示"
+security:
+  - DemoSession: []
+tags:
+  - name: "身份"
+  - name: "排查"
+  - name: "纠正"
+  - name: "改进"
+  - name: "版本"
+  - name: "偏好"
+  - name: "评测"
+paths:
+  "/demo/sign-in":
+    post:
+      tags:
+        - "身份"
+      summary: "选择本地演示身份"
+      operationId: "signInDemo"
+      security: []
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: "操作成功"
+          headers:
+            Set-Cookie:
+              description: "签发仅供同源应用使用的 lm_session Cookie"
+              schema:
+                type: "string"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Identity"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/sessions":
+    post:
+      tags:
+        - "排查"
+      summary: "创建排查会话"
+      operationId: "createSession"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CreateSessionRequest"
+      responses:
+        "201":
+          description: "资源已创建"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Session"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/sessions/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "排查"
+      summary: "查看自己会话的消息和运行"
+      operationId: "getSession"
+      description: "以消息位置从旧到新分页，runs 返回当前页消息关联的运行摘要并去重。"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Cursor"
+        - "$ref": "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SessionDetail"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/sessions/{id}/runs":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "排查"
+      summary: "提交排查问题"
+      operationId: "createRun"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CreateRunRequest"
+      responses:
+        "202":
+          description: "任务已接收"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RunAccepted"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/runs/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "排查"
+      summary: "查看运行状态和结论"
+      operationId: "getRun"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Run"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/runs/{id}/trace":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "排查"
+      summary: "查看运行节点和工具轨迹"
+      operationId: "getRunTrace"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Trace"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/runs/{id}/resume":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "排查"
+      summary: "恢复中断运行"
+      operationId: "resumeRun"
+      description: "仅恢复 interrupted。继续使用原运行 ID、输入快照和版本绑定。"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: "任务已接收"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RunAccepted"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/runs/{id}/feedback":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "纠正"
+      summary: "对已有结果提交纠正"
+      operationId: "createFeedback"
+      x-roles:
+        - "operator"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CreateFeedbackRequest"
+      responses:
+        "201":
+          description: "资源已创建"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Feedback"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/feedback":
+    get:
+      tags:
+        - "纠正"
+      summary: "查看授权范围内的纠正"
+      operationId: "listFeedback"
+      description: "运营员可查本人提交。审核员可查本租户审核队列。"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Cursor"
+        - "$ref": "#/components/parameters/Limit"
+        - name: "session_id"
+          in: "query"
+          schema:
+            "$ref": "#/components/schemas/Id"
+        - name: "status"
+          in: "query"
+          schema:
+            "$ref": "#/components/schemas/FeedbackStatus"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/FeedbackPage"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/feedback/{id}/verify":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "纠正"
+      summary: "复核纠正"
+      operationId: "verifyFeedback"
+      x-roles:
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/VerifyFeedbackRequest"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Feedback"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/evolution/jobs":
+    post:
+      tags:
+        - "改进"
+      summary: "发起基础层、元层或候选回放"
+      operationId: "createEvolutionJob"
+      x-roles:
+        - "operator"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/EvolutionRequest"
+      responses:
+        "202":
+          description: "任务已接收"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/JobAccepted"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/evolution/jobs/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "改进"
+      summary: "查询改进任务及评测进度"
+      operationId: "getEvolutionJob"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/EvolutionJob"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/versions":
+    get:
+      tags:
+        - "版本"
+      summary: "查看本租户版本和现行组合"
+      operationId: "listVersions"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Cursor"
+        - "$ref": "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/VersionPage"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/versions/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "版本"
+      summary: "查看版本来源、差异和报告"
+      operationId: "getVersion"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/VersionDetail"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/versions/{id}/review":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "版本"
+      summary: "审核候选版本"
+      operationId: "reviewVersion"
+      description: "批准时报告必须是该候选最新通过的活动基线报告。"
+      x-roles:
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ReviewVersionRequest"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/VersionDetail"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/versions/{id}/release":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "版本"
+      summary: "激活已批准候选"
+      operationId: "releaseVersion"
+      description: "需要匹配活动发布 ID 及审核时绑定的报告和内容哈希。"
+      x-roles:
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ReleaseRequest"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ReleaseEvent"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/versions/{id}/rollback":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    post:
+      tags:
+        - "版本"
+      summary: "回滚到此前发布的版本组合"
+      operationId: "rollbackVersion"
+      description: "路径 ID 为回滚目标版本。当前发布 ID 由请求体传入并用于并发校验。"
+      x-roles:
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/RollbackRequest"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ReleaseEvent"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/preferences":
+    get:
+      tags:
+        - "偏好"
+      summary: "查看本人显式保存的偏好"
+      operationId: "listPreferences"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Cursor"
+        - "$ref": "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PreferencePage"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+    post:
+      tags:
+        - "偏好"
+      summary: "保存本人偏好"
+      operationId: "createPreference"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CreatePreferenceRequest"
+      responses:
+        "201":
+          description: "资源已创建"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Preference"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/preferences/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    delete:
+      tags:
+        - "偏好"
+      summary: "撤回本人偏好"
+      operationId: "deletePreference"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Origin"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: "撤回成功"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/evidence/{id}":
+    parameters:
+      - "$ref": "#/components/parameters/PathId"
+    get:
+      tags:
+        - "排查"
+      summary: "查看业务证据或政策原文定位"
+      operationId: "getEvidence"
+      description: "审核员还可查看本租户审核队列中纠正直接引用的证据。"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Evidence"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+  "/evaluations":
+    get:
+      tags:
+        - "评测"
+      summary: "查询已归档公开评测"
+      operationId: "listEvaluations"
+      x-roles:
+        - "operator"
+        - "reviewer"
+      parameters:
+        - "$ref": "#/components/parameters/Cursor"
+        - "$ref": "#/components/parameters/Limit"
+        - name: "mode"
+          in: "query"
+          schema:
+            "$ref": "#/components/schemas/ModelMode"
+        - name: "kind"
+          in: "query"
+          schema:
+            type: "string"
+            enum:
+              - "logistics"
+              - "rag"
+              - "grounding"
+      responses:
+        "200":
+          description: "操作成功"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/EvaluationPage"
+        "401":
+          "$ref": "#/components/responses/Unauthenticated"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "422":
+          "$ref": "#/components/responses/InvalidInput"
+components:
+  securitySchemes:
+    DemoSession:
+      type: "apiKey"
+      in: "cookie"
+      name: "lm_session"
+      description: "由本地演示身份入口签发。服务端解析用户和租户。"
+  parameters:
+    PathId:
+      name: "id"
+      in: "path"
+      required: true
+      schema:
+        "$ref": "#/components/schemas/Id"
+      description: "与当前操作对应的资源 ID"
+    Cursor:
+      name: "cursor"
+      in: "query"
+      schema:
+        type: "string"
+        maxLength: 512
+    Limit:
+      name: "limit"
+      in: "query"
+      schema:
+        type: "integer"
+        minimum: 1
+        maximum: 100
+        default: 20
+    Origin:
+      name: "Origin"
+      in: "header"
+      schema:
+        type: "string"
+        description: "与配置的回环地址源精确一致"
+      required: true
+    IdempotencyKey:
+      name: "Idempotency-Key"
+      in: "header"
+      schema:
+        type: "string"
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+      description: "服务端按认证主体和操作语义去重。重试复用原键。"
+  responses:
+    BadRequest:
+      description: "JSON 或请求格式无法解码"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Unauthenticated:
+      description: "演示会话无效或已过期"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Forbidden:
+      description: "当前身份、来源或操作权限不符合要求"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    NotFound:
+      description: "资源不存在、当前主体不可见，或演示入口未启用"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Conflict:
+      description: "状态、活动版本或幂等键与当前操作冲突"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    InvalidInput:
+      description: "字段不符合 schema 或业务约束"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+  schemas:
+    Id:
+      type: "string"
+      description: "由服务端签发的不透明 ASCII 标识"
+      pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    Timestamp:
+      type: "string"
+      description: "UTC 时间戳，使用 ISO 8601 并以 Z 结束"
+      format: "date-time"
+      pattern: "Z$"
+    Sha256:
+      type: "string"
+      pattern: "^[a-f0-9]{64}$"
+    Error:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "code"
+        - "message"
+        - "request_id"
+      properties:
+        code:
+          type: "string"
+          description: "稳定的机器可读错误码"
+          pattern: "^[a-z][a-z0-9_]{0,63}$"
+        message:
+          type: "string"
+          description: "简短中文说明"
+          minLength: 1
+          maxLength: 1000
+        request_id:
+          "$ref": "#/components/schemas/Id"
+    DemoProfile:
+      type: "string"
+      enum:
+        - "alpha_operator"
+        - "alpha_reviewer"
+        - "beta_operator"
+        - "beta_reviewer"
+    Role:
+      type: "string"
+      enum:
+        - "operator"
+        - "reviewer"
+    ModelMode:
+      type: "string"
+      enum:
+        - "demo"
+        - "deepseek"
+    SignInRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "profile"
+      properties:
+        profile:
+          "$ref": "#/components/schemas/DemoProfile"
+    Identity:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "profile"
+        - "user_id"
+        - "tenant_id"
+        - "role"
+      properties:
+        profile:
+          "$ref": "#/components/schemas/DemoProfile"
+        user_id:
+          "$ref": "#/components/schemas/Id"
+        tenant_id:
+          "$ref": "#/components/schemas/Id"
+        role:
+          "$ref": "#/components/schemas/Role"
+    CreateSessionRequest:
+      type: "object"
+      additionalProperties: false
+      properties:
+        title:
+          type: "string"
+          description: "可省略，由服务端生成默认标题"
+          minLength: 1
+          maxLength: 120
+    CreateRunRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "question"
+      properties:
+        question:
+          type: "string"
+          description: "自然语言问题。去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+    Session:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "session_id"
+        - "title"
+        - "created_at"
+      properties:
+        session_id:
+          "$ref": "#/components/schemas/Id"
+        title:
+          type: "string"
+          description: "简短中文说明"
+          minLength: 1
+          maxLength: 1000
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    Message:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "message_id"
+        - "role"
+        - "content"
+        - "created_at"
+        - "run_id"
+      properties:
+        message_id:
+          "$ref": "#/components/schemas/Id"
+        role:
+          type: "string"
+          enum:
+            - "user"
+            - "assistant"
+        content:
+          type: "string"
+          description: "用于会话显示的纯文本"
+          maxLength: 8000
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+        run_id:
+          "$ref": "#/components/schemas/Id"
+    RunStatus:
+      type: "string"
+      enum:
+        - "queued"
+        - "running"
+        - "interrupted"
+        - "completed"
+        - "failed"
+    ResultStatus:
+      type: "string"
+      enum:
+        - "answered"
+        - "partial"
+        - "needs_clarification"
+    Classification:
+      type: "string"
+      enum:
+        - "normal"
+        - "awaiting_handoff"
+        - "awaiting_pickup"
+        - "pickup_overdue"
+        - "in_transit_delayed"
+        - "delivery_disputed"
+        - "needs_verification"
+    RetrievalMode:
+      type: "string"
+      enum:
+        - "hybrid"
+        - "keyword_only"
+        - "semantic_only"
+        - "unavailable"
+    EvidenceSource:
+      type: "string"
+      enum:
+        - "order"
+        - "warehouse"
+        - "logistics"
+        - "aftersales"
+        - "policy"
+    ActiveVersions:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "release_id"
+        - "version_id"
+        - "rule_version_id"
+        - "skill_version_id"
+      properties:
+        release_id:
+          "$ref": "#/components/schemas/Id"
+        version_id:
+          "$ref": "#/components/schemas/Id"
+        rule_version_id:
+          "$ref": "#/components/schemas/Id"
+        skill_version_id:
+          "$ref": "#/components/schemas/Id"
+    RunAccepted:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "run_id"
+        - "status"
+      properties:
+        run_id:
+          "$ref": "#/components/schemas/Id"
+        status:
+          type: "string"
+          enum:
+            - "queued"
+            - "running"
+    RunSummary:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "run_id"
+        - "status"
+        - "created_at"
+      properties:
+        run_id:
+          "$ref": "#/components/schemas/Id"
+        status:
+          "$ref": "#/components/schemas/RunStatus"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    SessionDetail:
+      type: "object"
+      required:
+        - "session_id"
+        - "title"
+        - "created_at"
+        - "messages"
+        - "runs"
+        - "next_cursor"
+      properties:
+        session_id:
+          "$ref": "#/components/schemas/Id"
+        title:
+          type: "string"
+          description: "简短中文说明"
+          minLength: 1
+          maxLength: 1000
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+        messages:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Message"
+        runs:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/RunSummary"
+        next_cursor:
+          "$ref": "#/components/schemas/NextCursor"
+      additionalProperties: false
+    Diagnosis:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "classification"
+        - "rule_id"
+        - "evidence_ids"
+      properties:
+        classification:
+          "$ref": "#/components/schemas/Classification"
+        rule_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+          minItems: 1
+    Fact:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "text"
+        - "evidence_ids"
+      properties:
+        text:
+          type: "string"
+          description: "简短中文说明"
+          minLength: 1
+          maxLength: 1000
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+          minItems: 1
+    RunResult:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "status"
+        - "summary"
+        - "facts"
+        - "diagnoses"
+        - "missing_information"
+        - "next_steps"
+        - "evidence_ids"
+        - "retrieval_mode"
+      properties:
+        status:
+          "$ref": "#/components/schemas/ResultStatus"
+        summary:
+          type: "string"
+          description: "简短中文说明"
+          minLength: 1
+          maxLength: 1000
+        facts:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Fact"
+        diagnoses:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Diagnosis"
+        missing_information:
+          type: "array"
+          items:
+            type: "string"
+            description: "简短中文说明"
+            minLength: 1
+            maxLength: 1000
+        next_steps:
+          type: "array"
+          items:
+            type: "string"
+            description: "简短中文说明"
+            minLength: 1
+            maxLength: 1000
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+        retrieval_mode:
+          anyOf:
+            - "$ref": "#/components/schemas/RetrievalMode"
+            - type: "null"
+    Run:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "run_id"
+        - "session_id"
+        - "status"
+        - "mode"
+        - "data_version"
+        - "as_of"
+        - "versions"
+        - "result"
+        - "error"
+        - "created_at"
+      properties:
+        run_id:
+          "$ref": "#/components/schemas/Id"
+        session_id:
+          "$ref": "#/components/schemas/Id"
+        status:
+          "$ref": "#/components/schemas/RunStatus"
+        mode:
+          "$ref": "#/components/schemas/ModelMode"
+        data_version:
+          "$ref": "#/components/schemas/Id"
+        as_of:
+          "$ref": "#/components/schemas/Timestamp"
+        versions:
+          "$ref": "#/components/schemas/ActiveVersions"
+        result:
+          anyOf:
+            - "$ref": "#/components/schemas/RunResult"
+            - type: "null"
+        error:
+          anyOf:
+            - "$ref": "#/components/schemas/Error"
+            - type: "null"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    TraceEvent:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "sequence"
+        - "node_id"
+        - "kind"
+        - "status"
+        - "started_at"
+        - "duration_ms"
+        - "tool_call_id"
+        - "tool_name"
+        - "attempt"
+        - "evidence_ids"
+        - "error_code"
+      properties:
+        sequence:
+          type: "integer"
+          minimum: 1
+        node_id:
+          "$ref": "#/components/schemas/Id"
+        kind:
+          type: "string"
+          enum:
+            - "node"
+            - "tool"
+        status:
+          type: "string"
+          enum:
+            - "ok"
+            - "partial"
+            - "skipped"
+            - "error"
+        started_at:
+          "$ref": "#/components/schemas/Timestamp"
+        duration_ms:
+          type: "integer"
+          minimum: 0
+        tool_call_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        tool_name:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        attempt:
+          anyOf:
+            - type: "integer"
+              minimum: 1
+              maximum: 2
+            - type: "null"
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+        error_code:
+          anyOf:
+            - type: "string"
+            - type: "null"
+    Trace:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "run_id"
+        - "events"
+      properties:
+        run_id:
+          "$ref": "#/components/schemas/Id"
+        events:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/TraceEvent"
+    EvidenceField:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "name"
+        - "value"
+      properties:
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+        value:
+          type:
+            - "string"
+            - "number"
+            - "boolean"
+            - "null"
+    PolicyReference:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "document_id"
+        - "version"
+        - "chunk_id"
+        - "title_path"
+        - "excerpt"
+        - "effective_at"
+      properties:
+        document_id:
+          "$ref": "#/components/schemas/Id"
+        version:
+          "$ref": "#/components/schemas/Id"
+        chunk_id:
+          "$ref": "#/components/schemas/Id"
+        title_path:
+          type: "array"
+          items:
+            type: "string"
+          minItems: 1
+        excerpt:
+          type: "string"
+        effective_at:
+          "$ref": "#/components/schemas/Timestamp"
+    Evidence:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "evidence_id"
+        - "source"
+        - "resource_id"
+        - "locator"
+        - "observed_at"
+        - "fields"
+        - "policy"
+      properties:
+        evidence_id:
+          "$ref": "#/components/schemas/Id"
+        source:
+          "$ref": "#/components/schemas/EvidenceSource"
+        resource_id:
+          "$ref": "#/components/schemas/Id"
+        locator:
+          type: "string"
+          description: "业务记录或分块定位符"
+        observed_at:
+          "$ref": "#/components/schemas/Timestamp"
+        fields:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/EvidenceField"
+        policy:
+          anyOf:
+            - "$ref": "#/components/schemas/PolicyReference"
+            - type: "null"
+    CreateFeedbackRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "corrected_classification"
+        - "reason"
+        - "evidence_ids"
+      properties:
+        corrected_classification:
+          "$ref": "#/components/schemas/Classification"
+        reason:
+          type: "string"
+          description: "去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+          minItems: 1
+          maxItems: 20
+    FeedbackStatus:
+      type: "string"
+      enum:
+        - "pending"
+        - "verified"
+        - "rejected"
+    ReviewDecision:
+      type: "string"
+      enum:
+        - "approve"
+        - "reject"
+    VerifyFeedbackRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "decision"
+        - "reason"
+      properties:
+        decision:
+          "$ref": "#/components/schemas/ReviewDecision"
+        reason:
+          type: "string"
+          description: "去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+    Feedback:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "feedback_id"
+        - "run_id"
+        - "status"
+        - "corrected_classification"
+        - "reason"
+        - "evidence_ids"
+        - "submitted_by"
+        - "reviewed_by"
+        - "review_reason"
+        - "created_at"
+      properties:
+        feedback_id:
+          "$ref": "#/components/schemas/Id"
+        run_id:
+          "$ref": "#/components/schemas/Id"
+        status:
+          "$ref": "#/components/schemas/FeedbackStatus"
+        corrected_classification:
+          "$ref": "#/components/schemas/Classification"
+        reason:
+          type: "string"
+          description: "去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+        submitted_by:
+          "$ref": "#/components/schemas/Id"
+        reviewed_by:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        review_reason:
+          anyOf:
+            - type: "string"
+              description: "去掉首尾空白后仍需有内容"
+              minLength: 1
+              maxLength: 2000
+            - type: "null"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    NextCursor:
+      anyOf:
+        - type: "string"
+          description: "不透明游标。null 表示到达末尾"
+          minLength: 1
+          maxLength: 512
+        - type: "null"
+    FeedbackPage:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Feedback"
+        next_cursor:
+          "$ref": "#/components/schemas/NextCursor"
+    EvolutionKind:
+      type: "string"
+      enum:
+        - "base"
+        - "meta"
+        - "replay"
+    EvolutionRequest:
+      oneOf:
+        - type: "object"
+          additionalProperties: false
+          required:
+            - "kind"
+            - "feedback_ids"
+          properties:
+            kind:
+              const: "base"
+            feedback_ids:
+              type: "array"
+              items:
+                "$ref": "#/components/schemas/Id"
+              uniqueItems: true
+              minItems: 1
+              maxItems: 100
+        - type: "object"
+          additionalProperties: false
+          required:
+            - "kind"
+          properties:
+            kind:
+              const: "meta"
+        - type: "object"
+          additionalProperties: false
+          required:
+            - "kind"
+            - "version_id"
+          properties:
+            kind:
+              const: "replay"
+            version_id:
+              "$ref": "#/components/schemas/Id"
+    JobStatus:
+      type: "string"
+      enum:
+        - "queued"
+        - "running"
+        - "completed"
+        - "failed"
+    JobAccepted:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "job_id"
+        - "status"
+      properties:
+        job_id:
+          "$ref": "#/components/schemas/Id"
+        status:
+          const: "queued"
+    EvolutionJob:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "job_id"
+        - "kind"
+        - "status"
+        - "processed_cases"
+        - "total_cases"
+        - "version_id"
+        - "report_ids"
+        - "error"
+        - "created_at"
+      properties:
+        job_id:
+          "$ref": "#/components/schemas/Id"
+        kind:
+          "$ref": "#/components/schemas/EvolutionKind"
+        status:
+          "$ref": "#/components/schemas/JobStatus"
+        processed_cases:
+          type: "integer"
+          minimum: 0
+        total_cases:
+          type: "integer"
+          minimum: 0
+        version_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        report_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+        error:
+          anyOf:
+            - "$ref": "#/components/schemas/Error"
+            - type: "null"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    VersionState:
+      type: "string"
+      enum:
+        - "draft"
+        - "replaying"
+        - "passed"
+        - "failed"
+        - "approved"
+        - "rejected"
+        - "released"
+    VersionKind:
+      type: "string"
+      enum:
+        - "initial"
+        - "base"
+        - "meta"
+    VersionSummary:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "version_id"
+        - "kind"
+        - "state"
+        - "rule_version_id"
+        - "skill_version_id"
+        - "content_hash"
+      properties:
+        version_id:
+          "$ref": "#/components/schemas/Id"
+        kind:
+          "$ref": "#/components/schemas/VersionKind"
+        state:
+          "$ref": "#/components/schemas/VersionState"
+        rule_version_id:
+          "$ref": "#/components/schemas/Id"
+        skill_version_id:
+          "$ref": "#/components/schemas/Id"
+        content_hash:
+          "$ref": "#/components/schemas/Sha256"
+    ReplayCaseExample:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "case_id"
+        - "expected"
+        - "baseline"
+        - "candidate"
+        - "evidence_ids"
+      properties:
+        case_id:
+          "$ref": "#/components/schemas/Id"
+        expected:
+          "$ref": "#/components/schemas/Classification"
+        baseline:
+          anyOf:
+            - "$ref": "#/components/schemas/Classification"
+            - type: "null"
+        candidate:
+          anyOf:
+            - "$ref": "#/components/schemas/Classification"
+            - type: "null"
+        evidence_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+    ReplayReport:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "report_id"
+        - "comparison"
+        - "candidate_version_id"
+        - "baseline_version_id"
+        - "baseline_release_id"
+        - "candidate_content_hash"
+        - "data_version"
+        - "config_hash"
+        - "sample_count"
+        - "baseline_error_count"
+        - "candidate_error_count"
+        - "added_critical_errors"
+        - "passed"
+        - "examples"
+        - "mode"
+        - "model_id"
+        - "created_at"
+      properties:
+        report_id:
+          "$ref": "#/components/schemas/Id"
+        comparison:
+          type: "string"
+          enum:
+            - "active_baseline"
+            - "skill_ablation"
+        candidate_version_id:
+          "$ref": "#/components/schemas/Id"
+        baseline_version_id:
+          "$ref": "#/components/schemas/Id"
+        baseline_release_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        candidate_content_hash:
+          "$ref": "#/components/schemas/Sha256"
+        data_version:
+          "$ref": "#/components/schemas/Id"
+        config_hash:
+          "$ref": "#/components/schemas/Sha256"
+        sample_count:
+          type: "integer"
+          minimum: 1
+        baseline_error_count:
+          type: "integer"
+          minimum: 0
+        candidate_error_count:
+          type: "integer"
+          minimum: 0
+        added_critical_errors:
+          type: "integer"
+          minimum: 0
+        passed:
+          type: "boolean"
+        examples:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ReplayCaseExample"
+        mode:
+          "$ref": "#/components/schemas/ModelMode"
+        model_id:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    VersionDetail:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "version"
+        - "parent_version_id"
+        - "baseline_release_id"
+        - "submitted_by"
+        - "created_at"
+        - "changes"
+        - "source_feedback_ids"
+        - "reports"
+        - "reviewed_by"
+        - "reviewed_report_id"
+        - "review_reason"
+        - "activation_events"
+      properties:
+        version:
+          "$ref": "#/components/schemas/VersionSummary"
+        parent_version_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        baseline_release_id:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        submitted_by:
+          "$ref": "#/components/schemas/Id"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+        changes:
+          type: "array"
+          items:
+            type: "string"
+            description: "简短中文说明"
+            minLength: 1
+            maxLength: 1000
+        source_feedback_ids:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Id"
+          uniqueItems: true
+        reports:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ReplayReport"
+        reviewed_by:
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        reviewed_report_id:
+          description: "最近一条审核决定绑定的报告。候选尚未审核或原审批因重新回放而失效时为 null。"
+          anyOf:
+            - "$ref": "#/components/schemas/Id"
+            - type: "null"
+        review_reason:
+          anyOf:
+            - type: "string"
+              description: "去掉首尾空白后仍需有内容"
+              minLength: 1
+              maxLength: 2000
+            - type: "null"
+        activation_events:
+          type: "array"
+          description: "通过发布或回滚激活此版本组合的历史事件，按时间从新到旧。"
+          items:
+            "$ref": "#/components/schemas/ReleaseEvent"
+    VersionPage:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "active"
+        - "items"
+        - "next_cursor"
+      properties:
+        active:
+          "$ref": "#/components/schemas/ActiveVersions"
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/VersionSummary"
+        next_cursor:
+          "$ref": "#/components/schemas/NextCursor"
+    ReviewVersionRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "decision"
+        - "report_id"
+        - "reason"
+      properties:
+        decision:
+          "$ref": "#/components/schemas/ReviewDecision"
+        report_id:
+          "$ref": "#/components/schemas/Id"
+        reason:
+          type: "string"
+          description: "去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+    ReleaseRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "expected_release_id"
+      properties:
+        expected_release_id:
+          "$ref": "#/components/schemas/Id"
+    RollbackRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "expected_release_id"
+        - "reason"
+      properties:
+        expected_release_id:
+          "$ref": "#/components/schemas/Id"
+        reason:
+          type: "string"
+          description: "去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 2000
+    ReleaseEvent:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "operation"
+        - "active"
+        - "previous_release_id"
+        - "actor_id"
+        - "created_at"
+      properties:
+        operation:
+          type: "string"
+          enum:
+            - "release"
+            - "rollback"
+        active:
+          "$ref": "#/components/schemas/ActiveVersions"
+        previous_release_id:
+          "$ref": "#/components/schemas/Id"
+        actor_id:
+          "$ref": "#/components/schemas/Id"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    CreatePreferenceRequest:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "text"
+      properties:
+        text:
+          type: "string"
+          description: "显式保存的业务偏好，去掉首尾空白后仍需有内容"
+          minLength: 1
+          maxLength: 500
+    Preference:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "preference_id"
+        - "text"
+        - "index_status"
+        - "created_at"
+      properties:
+        preference_id:
+          "$ref": "#/components/schemas/Id"
+        text:
+          type: "string"
+          maxLength: 500
+        index_status:
+          type: "string"
+          enum:
+            - "pending"
+            - "ready"
+            - "failed"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    PreferencePage:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Preference"
+        next_cursor:
+          "$ref": "#/components/schemas/NextCursor"
+    EvaluationGroup:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "name"
+        - "sample_count"
+        - "metrics"
+      properties:
+        name:
+          type: "string"
+        sample_count:
+          type: "integer"
+          minimum: 1
+        metrics:
+          type: "object"
+          additionalProperties:
+            type:
+              - "number"
+              - "null"
+    EvaluationCaseResult:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "group"
+        - "actual"
+        - "correct"
+      properties:
+        group:
+          type: "string"
+          description: "与同一报告 groups 中的 name 一致"
+        actual:
+          type: "string"
+          minLength: 1
+          description: "合成案例的实际判断或失败摘要"
+        correct:
+          type: "boolean"
+    EvaluationCaseExample:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "case_id"
+        - "scenario"
+        - "expected"
+        - "results"
+      properties:
+        case_id:
+          "$ref": "#/components/schemas/Id"
+        scenario:
+          type: "string"
+          minLength: 1
+        expected:
+          type: "string"
+          minLength: 1
+        results:
+          type: "array"
+          minItems: 1
+          items:
+            "$ref": "#/components/schemas/EvaluationCaseResult"
+    Evaluation:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "evaluation_id"
+        - "kind"
+        - "mode"
+        - "model_id"
+        - "data_version"
+        - "data_hash"
+        - "code_ref"
+        - "config_hash"
+        - "baseline_group"
+        - "groups"
+        - "case_examples"
+        - "artifact_path"
+        - "created_at"
+      properties:
+        evaluation_id:
+          "$ref": "#/components/schemas/Id"
+        kind:
+          type: "string"
+          enum:
+            - "logistics"
+            - "rag"
+            - "grounding"
+        mode:
+          "$ref": "#/components/schemas/ModelMode"
+        model_id:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        data_version:
+          "$ref": "#/components/schemas/Id"
+        data_hash:
+          "$ref": "#/components/schemas/Sha256"
+        code_ref:
+          type: "string"
+        config_hash:
+          "$ref": "#/components/schemas/Sha256"
+        baseline_group:
+          type: "string"
+          description: "用于显示主对照的组名，须在 groups 中存在"
+        groups:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/EvaluationGroup"
+          minItems: 1
+        case_examples:
+          type: "array"
+          description: "报告中允许公开展开的合成案例摘要"
+          maxItems: 5
+          items:
+            "$ref": "#/components/schemas/EvaluationCaseExample"
+        artifact_path:
+          type: "string"
+          description: "公开归档中的项目相对路径，不含本机路径"
+        created_at:
+          "$ref": "#/components/schemas/Timestamp"
+    EvaluationPage:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Evaluation"
+        next_cursor:
+          "$ref": "#/components/schemas/NextCursor"
