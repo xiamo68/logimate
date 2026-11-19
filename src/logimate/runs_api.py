@@ -31,7 +31,9 @@ def mount_runs(app, engine, settings, runtime, identity, origin, error):
     if mode not in ("demo", "deepseek"):
         raise ValueError("LOGIMATE_MODE must be demo or deepseek")
     signing_key = os.getenv("LOGIMATE_MCP_SIGNING_KEY")
-    model = DeepSeek(os.getenv("DEEPSEEK_MODEL"), os.getenv("DEEPSEEK_API_KEY")) if mode == "deepseek" else None
+    limit = os.getenv("LOGIMATE_DEEPSEEK_MAX_REQUESTS")
+    model = DeepSeek(os.getenv("DEEPSEEK_MODEL"), os.getenv("DEEPSEEK_API_KEY"),
+                     request_limit=int(limit) if limit else None) if mode == "deepseek" else None
     invoke = mcp_invoker(os.getenv("LOGIMATE_MCP_URL", "http://127.0.0.1:8011/mcp"), signing_key) if signing_key else None
 
     def scoped(table, actor):

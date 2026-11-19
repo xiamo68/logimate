@@ -1,6 +1,6 @@
 # LogiMate 本地运行手册
 
-当前提供中文演示工作台、原生后端服务和评测归档入口。后续章节标注预计接入的能力。
+当前提供中文演示工作台、原生后端服务、冻结集评测命令和评测归档入口。
 
 ## 环境与配置
 
@@ -84,15 +84,18 @@ uv run --locked --env-file .env logimate index-policies --data-version synthetic
 
 ## 评测用法
 
-以下为预定 CLI。命令在持有冻结样本和可访问对应服务的环境执行，输出路径按运行批次区分。
+从仓库根目录冻结最终集。先完成一次基础层和一次元层任务，并从工作台或版本列表获取生成的候选 ID。物流评测要求 B、C 同起始规则、同反馈来源、同模型和同合成业务数据版本。评测 Milvus Lite 时先停止占用同一个索引文件的应用进程。
 
 ```powershell
-logimate eval logistics --mode demo --data-version synthetic-v1 --output artifacts/eval/demo/logistics
-logimate eval rag --mode demo --data-version synthetic-v1 --output artifacts/eval/demo/rag
-logimate eval grounding --mode demo --data-version synthetic-v1 --output artifacts/eval/demo/grounding
+uv run --locked logimate eval freeze
+uv run --locked --env-file .env logimate eval logistics --fixed-version $fixedVersion --evolved-version $evolvedVersion
+uv run --locked --env-file .env logimate eval rag
+uv run --locked --env-file .env logimate eval grounding
 ```
 
-真实评测在确认调用量和费用后使用 `--mode deepseek` 及另外的输出目录。候选开发回放使用验证集，完整测试指标由最终评测命令计算。详见[验收口径](../qa/acceptance.md)。
+命令默认输出至 `.logimate/evaluations`。每次生成一份可在工作台读取的 `evaluation-*.json` 摘要及一份 `cases-*.json` 明细。最终冻结集只供评测读取，生成和筛选候选继续使用改进集与开发验证集。详见[验收口径](../qa/acceptance.md)。
+
+真实评测确认费用后启用 `deepseek` 模式，使用同一模型生成 B/C。为临时验收应用配置 `LOGIMATE_DEEPSEEK_MAX_REQUESTS=2`，离线 worker 配置为 3。物流实时调用数为零，它离线读取 B/C 产物。RAG 命令使用 `--mode deepseek --max-requests 60`，事实校验对照用 `--mode deepseek --max-requests 120`。应用的真实售后回答经 DeepSeek 选择候选条款并通过证据校验，显示的引用来自政策原文。每次模型评测保存实际请求及 token 计数。
 
 ## 诊断与恢复
 

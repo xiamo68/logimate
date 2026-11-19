@@ -147,6 +147,7 @@ def candidate_plan(connection, job, cases, model):
     stored = job["payload"]
     tenant, kind = job["tenant_id"], stored["kind"]
     model_id = model.model if model else None
+    starting_usage = dict(model.usage) if model else {}
     active, active_rules = store.active_bundle(connection, tenant)
     active_payload = version_payload(connection, tenant, active["version_id"])
     fixed_rules, fixed_skill_id = None, None
@@ -164,6 +165,7 @@ def candidate_plan(connection, job, cases, model):
             feedback = get_verified(connection, tenant, existing["source_feedback_ids"], stored["data_version"])
             skill, generated = existing["skill"], existing["rules"]
             model_id = existing["model_id"]
+            starting_usage = dict(model.usage) if model else {}
             kind = existing["version"]["kind"]
             fixed_rules, fixed_skill_id = existing["fixed_rules"], existing["fixed_version_id"]
         else:
@@ -196,6 +198,8 @@ def candidate_plan(connection, job, cases, model):
             "source_feedback_ids": [row["feedback_id"] for row in feedback], "reviewed_by": None,
             "reviewed_report_id": None, "review_reason": None, "data_version": stored["data_version"],
             "model_id": model_id, "validation_hash": fingerprint(cases),
+            "generation_usage": existing.get("generation_usage", {}) if stored["kind"] == "replay" else (
+                {key: amount - starting_usage[key] for key, amount in model.usage.items()} if model else {}),
             "config_hash": fingerprint([cases, active_rules, generated, fixed_rules, skill])}
 
 
@@ -240,8 +244,9 @@ def run_one(engine, dataset_dir=Path(".logimate/datasets"), model=None):
                 ))
             elif plan["validation_hash"] != fingerprint(cases):
                 raise ValueError("Validation data changed after replay started")
-            prior = dict(connection.execute(select(store.replay_cases.c.case_id, store.replay_cases.c.payload)
-                                            .filter_by(job_id=job["job_id"])).tuples().all())
+            prior = {case_id: outcome for case_id, outcome in connection.execute(
+                select(store.replay_cases.c.case_id, store.replay_cases.c.payload).filter_by(job_id=job["job_id"]),
+            )}
         outcomes = []
         for case in cases:
             outcome = prior.get(case["case_id"])

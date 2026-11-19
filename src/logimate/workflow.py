@@ -16,6 +16,7 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict
 
 from . import store
+from .grounded import answer_question
 from .mcp_service import ToolResult, signer
 from .rules import generated_match, initial_diagnosis, matchable_features
 
@@ -52,11 +53,13 @@ def utc_now():
 
 
 class DeepSeek:
-    def __init__(self, model, key, *, transport=None):
+    def __init__(self, model, key, *, transport=None, request_limit=None):
         if not model or not key:
             raise ValueError("DeepSeek requires DEEPSEEK_MODEL and DEEPSEEK_API_KEY")
         self.model, self.key = model, key
         self.transport = transport
+        self.request_limit = request_limit
+        self.usage = {"attempts": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_prompt_tokens": 0}
 
     async def identify(self, question):
         return Intent.model_validate(await self.complete_json(
@@ -65,6 +68,13 @@ class DeepSeek:
         ))
 
     async def complete_json(self, instructions, input_data, max_tokens=1500):
+        content = input_data if isinstance(input_data, str) else json.dumps(input_data, ensure_ascii=False)
+        if self.request_limit is not None:
+            if self.usage["attempts"] >= self.request_limit:
+                raise ValueError("DeepSeek request limit reached")
+            if len((instructions + content).encode("utf-8")) > 8192:
+                raise ValueError("Evaluation prompt exceeds its declared budget")
+        self.usage["attempts"] += 1
         async with httpx.AsyncClient(timeout=15, trust_env=False, transport=self.transport) as client:
             response = await client.post("https://api.deepseek.com/chat/completions",
                                          headers={"Authorization": f"Bearer {self.key}"}, json={
@@ -72,12 +82,16 @@ class DeepSeek:
                 "thinking": {"type": "disabled"}, "max_tokens": max_tokens,
                 "messages": [
                     {"role": "system", "content": instructions},
-                    {"role": "user", "content": input_data if isinstance(input_data, str)
-                     else json.dumps(input_data, ensure_ascii=False)},
+                    {"role": "user", "content": content},
                 ],
             })
             response.raise_for_status()
-        return json.loads(response.json()["choices"][0]["message"]["content"])
+        data = response.json()
+        stats = data.get("usage") or {}
+        for name, field in (("prompt_tokens", "prompt_tokens"), ("completion_tokens", "completion_tokens"),
+                            ("cached_prompt_tokens", "prompt_cache_hit_tokens")):
+            self.usage[name] += stats.get(field) or 0
+        return json.loads(data["choices"][0]["message"]["content"])
 
 
 def mcp_invoker(url, key):
@@ -213,6 +227,10 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, che
         if state["intent"] == "aftersales":
             if retrieve:
                 retrieval_mode, chunks = await retrieve(state["question"], state["scope"])
+                if model and chunks:
+                    answer = await answer_question({"question": state["question"]}, chunks, model, guarded=True)
+                    selected = set(answer.get("evidence_ids", [])) if answer["status"] == "answered" else set()
+                    chunks = [chunk for chunk in chunks if chunk["id"] in selected]
                 for chunk in chunks:
                     scope = state["scope"]
                     evidence_id = store.hash_identifier(scope["tenant_id"], scope["run_id"], chunk["id"])
