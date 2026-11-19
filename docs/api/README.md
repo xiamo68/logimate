@@ -1,10 +1,10 @@
 # LogiMate HTTP 接口联调
 
-状态为设计合同，服务待实现。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
+已实现健康探针、演示身份及会话创建/读取。其余接口为已确认的设计合同。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
 
 ## 通用约定
 
-- 默认基地址为 `http://127.0.0.1:8000/api/v1`。正文为 UTF-8 JSON，时间戳使用 UTC `Z`。资源 ID 为不透明字符串，业务订单号在查询正文使用。
+- 默认基地址为 `http://127.0.0.1:8010/api/v1`。正文为 UTF-8 JSON，时间戳使用 UTC `Z`。资源 ID 为不透明字符串，业务订单号在查询正文使用。
 - `POST /demo/sign-in` 接收 `profile`，可选 `alpha_operator`、`alpha_reviewer`、`beta_operator`、`beta_reviewer`。服务端映射固定角色与租户，并签发 HttpOnly、SameSite=Strict 的 `lm_session` Cookie。入口只在回环演示启用时开放。更换身份签发新会话，前端清除上一身份的显示数据。
 - 状态写入必须带与配置地址一致的 `Origin`。网页同源发送，CLI 从已配置的本地地址构造请求头并保留会话。租户、用户、角色从服务端上下文获取。网页按权限显示操作，接口单独检查权限和资源归属。
 - 除登录外，写操作接受可选 `Idempotency-Key`，前端生成并在本次操作重试时复用。以租户、用户、HTTP 方法和具体资源路径去重。同键同规范化输入返回原操作的状态码及正文，同键不同输入返回 409。去重和业务写入在同一事务提交。首次提交回放或排查任务返回 202，客户端按 ID 查询状态。

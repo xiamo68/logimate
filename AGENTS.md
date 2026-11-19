@@ -6,7 +6,7 @@
 
 1. 修改前检查 Git 状态以及已有实现，保护现有改动。按[阶段索引](docs/delivery/README.md)识别当前阶段、依赖和退出条件。
 2. 产品行为以 [PRD](docs/product/prd.md)及[已确认总体规格](docs/superpowers/specs/2026-11-19-logimate-design.md)为依据。HTTP 路由、字段和状态码以 [OpenAPI](docs/api/openapi.yaml)为准，业务工具按 [MCP 合同](docs/api/mcp-tools.md)实现。
-3. 按[技术设计](docs/technical/architecture.md)保持 Python、FastAPI、LangGraph、MCP、MySQL、Redis、Milvus、Docker Compose 的职责。网页沿用 FastAPI 同源 HTML、CSS 和原生 JavaScript 方案。依赖与镜像版本在初始化阶段实测后锁定。
+3. 按[技术设计](docs/technical/architecture.md)保持 Python、FastAPI、LangGraph、MCP、MySQL、Redis、Milvus 的职责。本地使用原生进程运行，禁止使用 Docker。网页沿用 FastAPI 同源 HTML、CSS 和原生 JavaScript 方案。依赖与服务版本在初始化阶段实测后锁定。
 4. 只为当前阶段实现必要能力。接口或行为变化时，同次更新合同、调用方、测试和受影响的说明。测试命令以仓库实际实现及[运行手册](docs/technical/runbook.md)为准，手册内标注为预定的命令要在对应阶段验证。
 
 ## 数据、权限与版本

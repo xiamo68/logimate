@@ -4,8 +4,8 @@ info:
   version: "0.1.0"
   description: "已确认的接口设计合同。配套联调说明记录鉴权、幂等和状态转换。"
 servers:
-  - url: "http://127.0.0.1:8000/api/v1"
-    description: "本地 Docker Compose 演示"
+  - url: "http://127.0.0.1:8010/api/v1"
+    description: "本地原生进程演示"
 security:
   - DemoSession: []
 tags:

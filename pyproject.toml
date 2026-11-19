@@ -1,0 +1,18 @@
+[project]
+name = "logimate"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["fastapi>=0.115,<1", "itsdangerous>=2.2,<3", "pymysql[rsa]>=1.1,<2", "sqlalchemy>=2,<3", "uvicorn>=0.34,<1"]
+
+[project.scripts]
+logimate = "logimate.cli:main"
+
+[dependency-groups]
+dev = ["httpx>=0.28,<1", "pytest>=8,<10"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

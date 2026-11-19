@@ -13,7 +13,7 @@ flowchart LR
     App --> SQL
     SQL --> Worker["离线改进与回放 Worker"]
     Graph --> Redis[("Redis")]
-    Graph --> Checkpoint[("SQLite 检查点卷")]
+    Graph --> Checkpoint[("SQLite 检查点文件")]
     Graph --> RAG["政策检索"]
     RAG --> Milvus[("Milvus")]
     RAG --> BM25["中文 BM25"]
@@ -25,14 +25,14 @@ flowchart LR
 | 组件 | 读取和写入边界 |
 | --- | --- |
 | `app` | 提供同源网页与 API，在单实例中执行在线图。MySQL 记录运行、事件、证据、会话和写入去重；SQLite 保存 LangGraph 检查点 |
-| `mcp` | 独立容器，提供真实 Streamable HTTP 工具服务。使用只读业务连接访问合成数据 |
+| `mcp` | 独立进程，提供真实 Streamable HTTP 工具服务。使用只读业务连接访问合成数据 |
 | `worker` | 从 MySQL 领取生成与回放任务，按租约保存结果，并恢复未结束任务 |
 | MySQL | 业务记录、授权绑定、持久消息、任务、规则与技能、审计和偏好正文的权威存储 |
 | Redis | 热会话窗口与摘要缓存。可按 MySQL 记录重建 |
 | Milvus | 分别索引政策分块与偏好。正文、版本及当前可见性由权威记录校验 |
 | 编码与生成 | CPU 本地向量编码器对政策与偏好编码。生成使用 `demo` 确定性适配器或 `deepseek` 真实适配器。两种模式调用相同业务服务 |
 
-公开端口只有应用的回环绑定。服务版本和 Python 3.12 兼容性在阶段 01 验证并锁定。启动、配置和排障见[本地运行手册](runbook.md)。
+应用和本地依赖默认绑定回环地址。阶段 01 锁定 Python 3.12 的应用依赖并验证原生 MySQL。其他服务在对应阶段接入及验证。启动、配置和排障见[本地运行手册](runbook.md)。
 
 ## 在线取证
 

@@ -1,41 +1,39 @@
 # LogiMate 本地运行手册
 
-状态为开发目标。当前仓库处于文档阶段，以下运行命令、端口和配置由阶段 01 至 06 实现并逐条验证。本文记录预计用法。
+阶段 01 提供原生 MySQL、合成数据、健康探针和会话接口。后续章节标注各阶段预计接入的能力。
 
 ## 环境与配置
 
-本地使用 Docker Desktop 的 Linux 容器和 Compose。Windows 在 PowerShell 中从仓库根目录操作。首次准备时确认 Docker daemon 可用、应用回环端口空闲、磁盘能存放镜像和向量模型缓存。阶段 01 记录实测镜像、CPU、内存和启动时长。已缓存的镜像与编码器可供无密钥演示复用。
+Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和一个原生 MySQL 8 实例。应用默认使用回环地址 8010。Redis 和 Milvus 在阶段 04 以独立本地服务接入，需 Linux 的组件可使用已有的 WSL 环境。
 
 | 配置 | 用途 | 约定 |
 | --- | --- | --- |
 | `LOGIMATE_MODE` | 模型运行模式 | 缺省 `demo`；显式选择 `deepseek` 时启用真实调用 |
 | `LOGIMATE_DEMO_SIGN_IN` | 回环地址演示入口 | 仅为本地演示启用；启动时校验配置的外部地址是回环地址 |
-| `LOGIMATE_PUBLIC_ORIGIN` | 同源 HTTP 地址 | 默认 `http://127.0.0.1:8000`，用于校验写请求来源 |
+| `LOGIMATE_PUBLIC_ORIGIN` | 同源 HTTP 地址 | 默认 `http://127.0.0.1:8010`，用于校验写请求来源 |
 | `LOGIMATE_DATA_VERSION` | 合成业务数据版本 | 与应用种子和索引版本一起解析；运行开始时冻结 |
-| `LOGIMATE_SESSION_SECRET`、`LOGIMATE_MCP_SIGNING_KEY` | 会话与 MCP 请求签名 | 本地独立生成，经环境或 Compose secrets 注入 |
-| `MYSQL_DSN`、`REDIS_URL`、`MILVUS_URI` | 内部依赖连接 | 按 Compose 网络设置，凭证以配置注入 |
+| `LOGIMATE_SESSION_SECRET`、`LOGIMATE_MCP_SIGNING_KEY` | 会话与 MCP 请求签名 | 会话密钥至少 32 个字符；MCP 密钥随阶段 02 接入 |
+| `MYSQL_DSN`、`REDIS_URL`、`MILVUS_URI` | 本地依赖连接 | 当前必填 MySQL DSN；Redis 和 Milvus 地址在阶段 04 使用 |
 | `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | 只在 `deepseek` 模式提供。启动检查字段完整性，评测记录使用的模型 ID |
 
-阶段 01 提供只有安全占位值的配置示例。Compose 将主机端口限制为 `127.0.0.1:8000:8000`，应用在容器内监听其服务端口，其他依赖留在 Compose 内部网络。本机凭据、连接串和模型调用日志留在本机。向外部模型发送的数据为合成内容。付费运行前根据样本规模、实际模型和尝试预算估算费用，并使用已获授权的额度。
+准备一个专用于 LogiMate 的 MySQL 数据库和用户，字符集选 `utf8mb4`。将仓库的 `.env.example` 复制为 `.env`，填入形如 `mysql+pymysql://用户:密码@127.0.0.1:3306/数据库` 的 DSN 和随机会话密钥。用户名或密码中用于 URL 的特殊字符需要编码。本机凭据和模型调用日志留在本机。付费运行前估算费用并使用已获授权的额度。
 
-## 预定启动顺序
-
-```powershell
-docker version
-docker compose version
-docker compose config --quiet
-docker compose up -d
-docker compose ps
-docker compose run --rm app logimate demo seed --data-version synthetic-v1
-```
-
-部署启动负责数据库迁移，播种命令负责创建固定种子数据和构建同版本索引。启动检查依赖连接，并在未完成初始化时提示播种。初始化后使用 PowerShell 核查 readiness，打开回环地址的网页，选择 `alpha_operator`，在排查页提交 `LM-1001`。切换审核身份后可以复核纠正、检查报告、发布和回滚。
+## 阶段 01 启动
 
 ```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8000/health/ready'
+uv sync --locked
+uv run --locked --env-file .env logimate migrate
+uv run --locked --env-file .env logimate demo seed --data-version synthetic-v1
+uv run --locked --env-file .env uvicorn logimate.api:create_app --factory --host 127.0.0.1 --port 8010
 ```
 
-readiness 给出数据库、MCP、编码器与索引整体状态。应用仍可用时，单个来源异常由业务接口按[工具合同](../api/mcp-tools.md)和[检索预算](architecture.md#检索和记忆)返回降级结果。
+播种写入固定版本的业务数据和合成政策，并在 `.logimate/datasets/` 导出评测清单。应用只读取业务数据库，评测标签保存在独立目录。初始化后从另一个 PowerShell 窗口核查 readiness。
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8010/health/ready'
+```
+
+当前 readiness 检查数据库、迁移与指定数据版本。后续由 [MCP 工具合同](../api/mcp-tools.md)和[检索设计](architecture.md#检索和记忆)约定依赖状态及降级。
 
 ## 评测用法
 
@@ -53,11 +51,11 @@ logimate eval grounding --mode demo --data-version synthetic-v1 --output artifac
 
 | 现象 | 首个检查 | 预期定位或恢复 |
 | --- | --- | --- |
-| 页面或服务未就绪 | `docker compose ps` 和 `docker compose logs --tail 100 app` | 区分端口冲突、迁移未完成、索引未建和服务异常；按原因完成初始化或修复配置 |
+| 应用未就绪 | Uvicorn 控制台和 `/health/ready` | 区分端口冲突、MySQL 连接失败、迁移未完成和数据未播种 |
 | 取证部分失败 | 打开运行轨迹，比较 `tool_call_id`、`attempt` 和错误码 | 确认超时预算与来源状态。连接恢复后新建运行，保留之前的降级结果 |
 | 检索退为关键词 | 读取 `retrieval_mode`、编码耗时及 Milvus 连接状态 | 数据或版本错误时重建同版本索引；人工延迟测试应触发 `keyword_only` |
-| 应用重启 | `docker compose restart app` 后重新查看原运行 | 中断运行显示恢复入口。恢复后沿用原 ID、证据快照和活动版本绑定 |
+| 应用重启 | 重新启动原生 Uvicorn 进程，再查看原运行 | 阶段 04 提供中断运行的恢复入口，沿用原 ID、证据快照和版本 |
 | 离线任务进度停止 | 检查 worker 日志和租约 | 服务恢复后由新租约继续未完成案例。核对已有评测记录无重复 |
 | 发布返回 409 | 查看当前发布 ID 和候选关联报告 | 基线变化时从现行版本重新回放并审核；同一网络请求用原幂等键重试 |
 
-正常停止使用 `docker compose stop`，保留持久数据。干净启动验收使用独立 Compose 项目名与新卷，避免清理现有演示记录。
+使用 Ctrl+C 停止当前应用进程，保留持久数据。干净启动验收使用独立测试数据库和数据目录。
