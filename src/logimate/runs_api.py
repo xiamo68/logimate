@@ -2,15 +2,19 @@ import logging
 import os
 from typing import Annotated
 from uuid import uuid4
+from time import monotonic
 
+import aiosqlite
 from fastapi import BackgroundTasks, Depends, Header
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from pydantic import BaseModel, ConfigDict, StringConstraints
 from sqlalchemy import insert, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
 
 from . import store
-from .workflow import DeepSeek, build_workflow, mcp_invoker, utc_now
+from .workflow import DeepSeek, build_workflow, mcp_invoker, resume_deadline, utc_now
 
 log = logging.getLogger(__name__)
 Id = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")]
@@ -22,14 +26,13 @@ class RunInput(BaseModel):
     question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 
 
-def mount_runs(app, engine, settings, identity, origin, error):
+def mount_runs(app, engine, settings, runtime, identity, origin, error):
     mode = os.getenv("LOGIMATE_MODE", "demo")
     if mode not in ("demo", "deepseek"):
         raise ValueError("LOGIMATE_MODE must be demo or deepseek")
     signing_key = os.getenv("LOGIMATE_MCP_SIGNING_KEY")
     model = DeepSeek(os.getenv("DEEPSEEK_MODEL"), os.getenv("DEEPSEEK_API_KEY")) if mode == "deepseek" else None
     invoke = mcp_invoker(os.getenv("LOGIMATE_MCP_URL", "http://127.0.0.1:8011/mcp"), signing_key) if signing_key else None
-    graph = build_workflow(invoke, model) if invoke else None
 
     def scoped(table, actor):
         return (table.c.tenant_id == actor["tenant_id"], table.c.user_id == actor["user_id"])
@@ -46,7 +49,7 @@ def mount_runs(app, engine, settings, identity, origin, error):
     def finish(run_id, output=None, failure=None):
         with engine.begin() as connection:
             if output:
-                records = {item.evidence_id: item.model_dump() for item in output.get("evidence", [])}
+                records = {item["evidence_id"]: item for item in output.get("evidence", [])}
                 if records:
                     connection.execute(insert(store.evidence), [
                         {"evidence_id": evidence_id, "run_id": run_id, "payload": evidence}
@@ -68,15 +71,35 @@ def mount_runs(app, engine, settings, identity, origin, error):
             ).values(status="running"))
             return row.rowcount == 1
 
-    async def execute(record, actor, rules):
+    async def execute(record, actor, rules, resumed=False):
         run_id = record["run_id"]
         try:
             if not await run_in_threadpool(mark_started, run_id):
                 return
-            output = await graph.ainvoke({"question": record["question"], "trace": [], "rules": rules,
-                                          "scope": {**actor, "run_id": run_id,
-                                                    "as_of": record["snapshot"]["as_of"],
-                                                    "data_version": record["snapshot"]["data_version"]}})
+            async def initial():
+                memory = await run_in_threadpool(runtime.memory.context, actor, record["session_id"],
+                                                 record["question"], run_id)
+                return {"question": record["question"], "trace": [], "rules": rules, "memory": memory,
+                        "scope": {**actor, "run_id": run_id, "as_of": record["snapshot"]["as_of"],
+                                  "data_version": record["snapshot"]["data_version"]}}
+
+            if runtime.checkpoint_path:
+                config = {"configurable": {"thread_id": run_id}}
+                serde = JsonPlusSerializer(allowed_msgpack_modules=[])
+                async with aiosqlite.connect(runtime.checkpoint_path) as connection:
+                    saver = AsyncSqliteSaver(connection, serde=serde)
+                    graph = build_workflow(invoke, model, checkpointer=saver, retrieve=runtime.retrieve)
+                    saved = await graph.aget_state(config) if resumed else None
+                    if saved and saved.values:
+                        token = resume_deadline.set(monotonic() + 8)
+                        try:
+                            output = await graph.ainvoke(None, config) if saved.next else saved.values
+                        finally:
+                            resume_deadline.reset(token)
+                    else:
+                        output = await graph.ainvoke(await initial(), config)
+            else:
+                output = await build_workflow(invoke, model, retrieve=runtime.retrieve).ainvoke(await initial())
             await run_in_threadpool(finish, run_id, output)
         except Exception as exc:
             log.warning("Run %s failed (%s)", run_id, type(exc).__name__)
@@ -86,7 +109,7 @@ def mount_runs(app, engine, settings, identity, origin, error):
 
     @app.post("/api/v1/sessions/{id}/runs", status_code=202, dependencies=[Depends(origin)])
     def create_run(id: Id, body: RunInput, tasks: BackgroundTasks, actor=Depends(identity), key: Key = None):
-        if graph is None:
+        if invoke is None:
             raise error(503, "mcp_not_configured", "请配置 MCP 服务签名密钥。")
         digest = store.hash_identifier(key) if key else None
         try:
@@ -134,6 +157,42 @@ def mount_runs(app, engine, settings, identity, origin, error):
     def trace(id: Id, actor=Depends(identity)):
         row = run_row(id, actor)
         return {"run_id": id, "events": row["trace"] or []}
+
+    @app.post("/api/v1/runs/{id}/resume", status_code=202, dependencies=[Depends(origin)])
+    def resume(id: Id, tasks: BackgroundTasks, actor=Depends(identity), key: Key = None):
+        if invoke is None or not runtime.checkpoint_path:
+            raise error(503, "resume_unavailable", "请启用检查点与 MCP 地址。")
+        record = run_row(id, actor)
+        if record["snapshot"]["mode"] != mode:
+            raise error(409, "invalid_state", "当前模型模式与原运行不同。")
+        receipt_id = store.hash_identifier(actor["tenant_id"], actor["user_id"], "resume", id, key) if key else None
+        accepted = {"run_id": id, "status": "queued"}
+        with engine.begin() as connection:
+            if receipt_id:
+                prior = connection.scalar(select(store.receipts.c.payload).filter_by(receipt_id=receipt_id))
+                if prior:
+                    return prior
+            queued = connection.execute(update(store.runs).where(
+                store.runs.c.run_id == id, store.runs.c.status == "interrupted",
+            ).values(status="queued"))
+            if queued.rowcount != 1:
+                if receipt_id:
+                    prior = connection.execute(select(store.receipts.c.payload)
+                                               .filter_by(receipt_id=receipt_id).with_for_update()).scalar()
+                    if prior:
+                        return prior
+                raise error(409, "invalid_state", "仅中断的运行可以续跑。")
+            version_id = record["snapshot"]["versions"]["version_id"]
+            bundle = connection.scalar(select(store.versions.c.payload).filter_by(
+                tenant_id=actor["tenant_id"], version_id=version_id,
+            )) if version_id != "ver_initial" else {"rules": []}
+            if not bundle:
+                raise error(409, "invalid_state", "原规则版本不可用。")
+            if receipt_id:
+                connection.execute(insert(store.receipts).values(receipt_id=receipt_id, request_hash=receipt_id,
+                                   payload=accepted))
+        tasks.add_task(execute, record, actor, bundle["rules"], True)
+        return accepted
 
     @app.get("/api/v1/evidence/{id}")
     def get_evidence(id: Id, actor=Depends(identity)):

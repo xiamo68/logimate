@@ -1,10 +1,10 @@
 # LogiMate 本地运行手册
 
-当前提供原生 MySQL、合成数据、健康探针、会话、MCP 排查和规则治理。后续章节标注各阶段预计接入的能力。
+当前提供原生 MySQL、合成数据、MCP 排查、规则治理、售后检索、分层记忆和任务续跑。后续章节标注预计接入的能力。
 
 ## 环境与配置
 
-Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和一个原生 MySQL 8 实例。应用默认使用回环地址 8010。Redis 和 Milvus 在阶段 04 以独立本地服务接入，需 Linux 的组件可使用已有的 WSL 环境。
+Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和一个原生 MySQL 8 实例。应用默认使用回环地址 8010。Redis 可运行在 WSL，Milvus Lite 可在 Windows 进程内使用本地数据文件。
 
 | 配置 | 用途 | 约定 |
 | --- | --- | --- |
@@ -14,7 +14,9 @@ Windows 在 PowerShell 中从仓库根目录操作。使用 Python 3.12、uv 和
 | `LOGIMATE_DATA_VERSION` | 合成业务数据版本 | 与应用种子和索引版本一起解析；运行开始时冻结 |
 | `LOGIMATE_SESSION_SECRET`、`LOGIMATE_MCP_SIGNING_KEY` | 会话与 MCP 请求签名 | 各至少 32 个字符，独立生成；应用和 MCP 进程使用同一个 MCP 签名密钥 |
 | `LOGIMATE_MCP_URL` | MCP 服务地址 | 默认 `http://127.0.0.1:8011/mcp` |
-| `MYSQL_DSN`、`REDIS_URL`、`MILVUS_URI` | 本地依赖连接 | 当前必填 MySQL DSN；Redis 和 Milvus 地址在阶段 04 使用 |
+| `MYSQL_DSN`、`REDIS_URL`、`LOGIMATE_MILVUS_URI` | 本地依赖连接 | MySQL DSN 必填。Redis 使用本地 URL，Milvus 使用本地 Lite 路径或原生服务 URL |
+| `LOGIMATE_CHECKPOINT_DB` | LangGraph SQLite 检查点 | 默认示例为 `.logimate/checkpoints.db`，续跑期间保留该文件 |
+| `LOGIMATE_EMBEDDING_MODEL`、`LOGIMATE_MODEL_CACHE` | 中文编码模型与缓存目录 | 默认 `BAAI/bge-small-zh-v1.5` 与 `.logimate/models`，首次构建需要下载 |
 | `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` | 真实模型凭据和模型 ID | 只在 `deepseek` 模式提供。启动检查字段完整性，评测记录使用的模型 ID |
 
 准备一个专用于 LogiMate 的 MySQL 数据库和用户，字符集选 `utf8mb4`。将仓库的 `.env.example` 复制为 `.env`，填入形如 `mysql+pymysql://用户:密码@127.0.0.1:3306/数据库` 的 DSN 和随机会话密钥。用户名或密码中用于 URL 的特殊字符需要编码。本机凭据和模型调用日志留在本机。付费运行前估算费用并使用已获授权的额度。
@@ -55,6 +57,19 @@ uv run --locked --env-file .env logimate worker
 ```
 
 加 `--once` 可处理一项可领取任务后退出。若数据文件导出在其他目录，传入 `--datasets`。任务逐案例保存结果；异常停止后，新 worker 在原租约过期后继续剩余案例。DeepSeek 模式的 worker 使用同一套模型配置，从已复核的规则候选和有历史回放依据的技能变体中生成提案。两种模式均走同一审批和发布门槛。
+
+## 阶段 04 检索、记忆与恢复
+
+先确保 `REDIS_URL` 指向回环地址上的 Redis，例如在已有 WSL 的终端用 `redis-server --bind 127.0.0.1 --port 6379`。在主应用停止时运行以下命令，再用阶段 01 命令启动应用。Milvus Lite 数据目录由一个进程持有。
+
+```powershell
+uv run --locked --env-file .env logimate migrate
+uv run --locked --env-file .env logimate index-policies --data-version synthetic-v1
+```
+
+询问退款或赔付时，可从证据接口读取政策版本、条款和原文。稠密路径超时后检查 `retrieval_mode` 是否为 `keyword_only`。Redis 缓存不可用时由 MySQL 重建近期问题窗口和旧订单号摘要。偏好索引失败可在应用停止后运行 `logimate index-preferences`。更换向量模型时使用独立索引目录并重新建立索引。
+
+主应用使用单进程运行。中断后的运行在启动时标记为 `interrupted`，按原 ID 调用 `POST /runs/{id}/resume`。恢复保留原模型模式、合成快照和规则版本。长期保留同一个检查点文件，清空它会失去已执行节点的进度。
 
 ## 评测用法
 

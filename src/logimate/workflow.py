@@ -1,4 +1,5 @@
 import asyncio
+from contextvars import ContextVar
 from datetime import datetime, timezone
 import json
 import logging
@@ -14,11 +15,13 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict
 
-from .mcp_service import Evidence, ToolResult, signer
+from . import store
+from .mcp_service import ToolResult, signer
 from .rules import generated_match, initial_diagnosis, matchable_features
 
 log = logging.getLogger(__name__)
 ORDER_ID = re.compile(r"(?<![\w.-])LM-[A-Za-z0-9][A-Za-z0-9-]{0,55}(?![A-Za-z0-9.-])", re.ASCII | re.IGNORECASE)
+resume_deadline = ContextVar("resume_deadline", default=None)
 
 
 class Intent(BaseModel):
@@ -29,6 +32,7 @@ class Intent(BaseModel):
 class GraphState(TypedDict, total=False):
     question: str
     rules: list[dict]
+    memory: dict
     scope: dict
     intent: str
     order_id: str | None
@@ -37,7 +41,9 @@ class GraphState(TypedDict, total=False):
     deadline: float
     trace: Annotated[list[dict], add]
     responses: Annotated[dict, or_]
-    evidence: Annotated[list[Evidence], add]
+    evidence: Annotated[list[dict], add]
+    policy_only: bool
+    ambiguous: bool
     result: dict
 
 
@@ -101,7 +107,8 @@ def event(trace, node, started_at, start, *, status="ok", call_id=None, tool=Non
     })
 
 
-def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
+def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8, checkpointer=None, retrieve=None,
+                   interrupt_after=None):
     def traced(name, function):
         async def step(state):
             trace = []
@@ -115,15 +122,24 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
     async def intent(state, trace):
         question = state["question"]
         identifiers = set(ORDER_ID.findall(question))
-        kind = "aftersales" if any(word in question for word in ("售后", "退款", "赔付", "工单")) else "logistics"
-        if model and len(identifiers) == 1:
+        kind = "aftersales" if any(word in question for word in (
+            "售后", "退款", "退货", "赔付", "赔偿", "工单", "延保", "签收争议", "签收却没收到",
+        )) else "logistics"
+        if not identifiers and any(word in question for word in ("这个订单", "这单", "该订单", "再查", "还有", "它的")):
+            previous = state.get("memory", {}).get("last_order")
+            if previous:
+                identifiers.add(previous)
+        if model and (len(identifiers) == 1 or kind == "aftersales"):
             kind = (await model.identify(question)).kind
-        return {"intent": kind, "order_id": next(iter(identifiers)) if len(identifiers) == 1 else None}
+        return {"intent": kind, "order_id": next(iter(identifiers)) if len(identifiers) == 1 else None,
+                "ambiguous": len(identifiers) > 1}
 
     async def guard(state, trace):
         scope = state.get("scope") or {}
-        return {"allowed": bool(state["order_id"] and all(scope.get(key) for key in
-                                               ("tenant_id", "user_id", "data_version", "as_of")))}
+        authorized = all(scope.get(key) for key in ("tenant_id", "user_id", "data_version", "as_of"))
+        return {"allowed": bool(state["order_id"] and authorized),
+                "policy_only": bool(authorized and retrieve and not state["order_id"]
+                                    and not state["ambiguous"] and state["intent"] == "aftersales")}
 
     async def plan(state, trace):
         return {"deadline": monotonic() + total_timeout, "responses": {}, "evidence": [], "package_ids": []}
@@ -132,7 +148,7 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
         call_id = uuid4().hex
         answer = ToolResult(status="timeout")
         for attempt in (1, 2):
-            remaining = min(attempt_timeout, state["deadline"] - monotonic())
+            remaining = min(attempt_timeout, (resume_deadline.get() or state["deadline"]) - monotonic())
             if remaining <= 0:
                 break
             started_at, start = utc_now(), monotonic()
@@ -152,33 +168,35 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
 
     async def order(state, trace):
         answer = await call(state, trace, "order", "order.get", {"order_id": state["order_id"]})
-        return {"responses": {"order": answer}, "evidence": answer.evidence,
+        return {"responses": {"order": answer.model_dump()}, "evidence": [item.model_dump() for item in answer.evidence],
                 "package_ids": (answer.data or {}).get("package_ids", [])[:8]}
 
     def domain(name, tool, args):
         async def run(state, trace):
-            if state["responses"]["order"].status != "ok":
+            if state["responses"]["order"]["status"] != "ok":
                 return {}
             answers = [await call(state, trace, name, tool, arguments) for arguments in args(state)]
-            return {"responses": {name: answers},
-                    "evidence": [item for answer in answers for item in answer.evidence]}
+            return {"responses": {name: [answer.model_dump() for answer in answers]},
+                    "evidence": [item.model_dump() for answer in answers for item in answer.evidence]}
 
         return run
 
     async def conclusion(state, trace):
-        if not state.get("allowed"):
+        if not state.get("allowed") and not state.get("policy_only"):
             return {"result": result("needs_clarification", "请提供一个明确的订单编号。", missing=["订单编号"])}
-        responses = state["responses"]
-        order_result = responses["order"]
-        if order_result.status != "ok":
+        raw = state.get("responses", {})
+        responses = {name: [ToolResult.model_validate(item) for item in entries]
+                     for name, entries in raw.items() if name != "order"}
+        order_result = ToolResult.model_validate(raw["order"]) if "order" in raw else None
+        if order_result and order_result.status != "ok":
             missing = "订单记录" if order_result.status == "not_found" else "订单来源暂不可用"
             return {"result": result("partial", "当前无法确认该订单。", missing=[missing])}
         facts, missing, diagnoses = [], [], []
-        for evidence in state["evidence"]:
-            for field in evidence.fields:
+        for evidence in state.get("evidence", []):
+            for field in evidence["fields"]:
                 if field["value"] is not None:
-                    facts.append({"text": f"{evidence.source} · {field['name']} = {field['value']}",
-                                  "evidence_ids": [evidence.evidence_id]})
+                    facts.append({"text": f"{evidence['source']} · {field['name']} = {field['value']}",
+                                  "evidence_ids": [evidence["evidence_id"]]})
         for name in ("warehouse", "logistics", "aftersales"):
             if any(answer.status != "ok" for answer in responses.get(name, [])):
                 missing.append(f"{name} 来源未取得完整证据")
@@ -190,12 +208,30 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
                     support = aftersales[0] if aftersales and aftersales[0].status == "ok" else None
                     diagnoses.append(classify(order_result, warehouse[0], answer, support,
                                               state["scope"]["as_of"], state.get("rules", [])))
+        policy = []
+        retrieval_mode = None
         if state["intent"] == "aftersales":
-            missing.append("适用的售后政策条款")
-        if not state["package_ids"]:
+            if retrieve:
+                retrieval_mode, chunks = await retrieve(state["question"], state["scope"])
+                for chunk in chunks:
+                    scope = state["scope"]
+                    evidence_id = store.hash_identifier(scope["tenant_id"], scope["run_id"], chunk["id"])
+                    policy.append({"evidence_id": evidence_id, "source": "policy", "resource_id": chunk["document_id"],
+                                   "locator": " / ".join(chunk["title_path"]), "observed_at": scope["as_of"], "fields": [],
+                                   "policy": {**{key: chunk[key] for key in ("document_id", "version", "title_path",
+                                                                             "excerpt", "effective_at")},
+                                              "chunk_id": chunk["id"]}})
+                    facts.append({"text": chunk["excerpt"], "evidence_ids": [evidence_id]})
+            if not policy:
+                missing.append("适用的售后政策条款")
+        if order_result and not state.get("package_ids"):
             missing.append("包裹映射")
-        return {"result": result("partial" if missing else "answered",
-                                 "已查询业务记录，请核对证据与诊断。", facts, diagnoses, missing)}
+        summary = "请核对引用的业务证据和政策条款。"
+        payload = result("partial" if missing else "answered", summary, facts, diagnoses, missing)
+        payload["retrieval_mode"] = retrieval_mode
+        for preference in state.get("memory", {}).get("preferences", []):
+            payload["next_steps"].append(f"处理偏好：{preference}")
+        return {"result": payload, "evidence": policy}
 
     graph = StateGraph(GraphState)
     nodes = {
@@ -218,7 +254,7 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
         graph.add_edge("order", domain_name)
     graph.add_edge(domains, "conclusion")
     graph.add_edge("conclusion", END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer, interrupt_after=interrupt_after)
 
 
 def result(status, summary, facts=None, diagnoses=None, missing=None):

@@ -3,12 +3,19 @@ name = "logimate"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "aiosqlite>=0.20,<1",
     "fastapi>=0.115,<1",
+    "fastembed>=0.7,<1",
     "httpx>=0.28,<1",
     "itsdangerous>=2.2,<3",
+    "jieba>=0.42,<1",
     "langgraph>=1,<2",
+    "langgraph-checkpoint-sqlite>=3.0.1,<5",
     "mcp>=1.22,<2",
+    "milvus-lite==3.2.2",
+    "pymilvus==3.0.2",
     "pymysql[rsa]>=1.1,<2",
+    "redis>=5,<9",
     "sqlalchemy>=2,<3",
     "uvicorn>=0.34,<1",
 ]

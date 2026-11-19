@@ -15,6 +15,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from . import store
 from .evolution_api import mount_evolution
 from .runs_api import mount_runs
+from .preferences_api import mount_preferences
+from .runtime import Runtime
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,8 @@ def create_app(settings=None, engine=None):
     engine = engine if engine is not None else store.database(settings.dsn)
     tokens = URLSafeTimedSerializer(settings.secret, salt="logimate-demo-session")
     cursors = URLSafeTimedSerializer(settings.secret, salt="logimate-session-cursor")
-    app = FastAPI(title="LogiMate", version="0.1.0")
+    runtime = Runtime(engine, settings.data_version)
+    app = FastAPI(title="LogiMate", version="0.1.0", lifespan=runtime.lifespan)
 
     @app.exception_handler(APIError)
     async def api_error(request, exc):
@@ -175,6 +178,7 @@ def create_app(settings=None, engine=None):
         return {**store.public_session(row), "messages": page, "next_cursor": next_cursor,
                 "runs": [summaries[run_id] for run_id in dict.fromkeys(item["run_id"] for item in page)]}
 
-    mount_runs(app, engine, settings, identity, same_origin, APIError)
+    mount_runs(app, engine, settings, runtime, identity, same_origin, APIError)
+    mount_preferences(app, engine, settings, runtime, identity, same_origin, APIError)
     mount_evolution(app, engine, settings, identity, same_origin, APIError)
     return app

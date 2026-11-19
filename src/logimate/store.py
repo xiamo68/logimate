@@ -80,6 +80,8 @@ receipts = Table(
     "evolution_receipts", metadata, Column("receipt_id", String(64), primary_key=True),
     Column("request_hash", String(64), nullable=False), Column("payload", JSON, nullable=False),
 )
+preferences = scoped_records("preferences", "preference_id", Column("user_id", String(64), nullable=False),
+                             Column("revoked_at", String(32)))
 INITIAL_VERSIONS = {"release_id": "rel_initial", "version_id": "ver_initial",
                     "rule_version_id": "rules_initial", "skill_version_id": "skill_initial"}
 
@@ -102,7 +104,7 @@ def migrate(engine):
     metadata.create_all(engine)
     with engine.begin() as connection:
         installed = set(connection.scalars(select(schema_versions.c.version)))
-        for version in ("001", "002", "003"):
+        for version in ("001", "002", "003", "004"):
             if version not in installed:
                 connection.execute(insert(schema_versions).values(version=version))
         tenants = set(connection.scalars(select(active_versions.c.tenant_id)))
