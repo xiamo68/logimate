@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from logimate.evolution import propose_patch
+from logimate.evolution import propose_patch, propose_skill
 from logimate.rules import evaluate, generate_patch, evolve_skill, INITIAL_SKILL
 
 
@@ -28,3 +28,18 @@ def test_model_cannot_replace_verified_classification():
                  "features": {"handoff": False, "tracking": "label_created", "has_support_case": True}}]
     with pytest.raises(ValueError, match="verified feedback"):
         propose_patch(INITIAL_SKILL, feedback, SimpleNamespace(complete_json=invent_rule))
+
+
+def test_skill_decision_retries_invalid_response():
+    responses = iter([{"fields": []}, {"decision": "adopt"}])
+
+    async def complete(instructions, body, **options):
+        return next(responses)
+
+    feedback = [{"corrected_classification": "awaiting_handoff",
+                 "features": {"handoff": False, "tracking": "label_created", "has_support_case": True}}]
+    failures = [{"expected": "awaiting_handoff", "candidate": "pickup_overdue",
+                 "features": {**feedback[0]["features"], "has_support_case": False}}]
+    assert propose_skill(INITIAL_SKILL, feedback, failures, SimpleNamespace(complete_json=complete)) == [
+        "handoff", "tracking",
+    ]

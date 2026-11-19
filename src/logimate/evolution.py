@@ -131,16 +131,22 @@ def propose_skill(old, feedback, examples, model):
     allowed = evolve_skill(old, feedback, examples)
     if model is None or old == allowed:
         return allowed
-    response = asyncio.run(model.complete_json(
-        'Return JSON {"fields":[...]}. Review validation false negatives and choose either the current '
-        'feature list or the proposed feature list. Keep handoff and tracking. Drop incidental support-case '
-        'presence only if it prevented a valid correction from matching.',
-        {"current": old, "proposed": allowed, "replay": examples},
-    ))
-    fields = response["fields"]
-    if fields not in (allowed, old):
-        raise ValueError("Invalid generated skill")
-    return fields
+    alternatives = {"keep": old, "adopt": allowed}
+    failures = [case for case in examples if case["candidate"] != case["expected"]]
+    instructions = (
+        'Review validation false negatives. Choose adopt when incidental support-case presence prevented '
+        'a verified correction from matching; otherwise keep. Output exactly one JSON object: '
+        '{"decision":"adopt"} or {"decision":"keep"}. No explanation, extra keys, or Markdown.'
+    )
+    for _ in range(2):
+        response = asyncio.run(model.complete_json(
+            instructions, {"alternatives": alternatives, "failures": failures, "verified_feedback": feedback},
+            max_tokens=80,
+        ))
+        if (isinstance(response, dict) and response.keys() == {"decision"}
+                and isinstance(response["decision"], str) and response["decision"] in alternatives):
+            return alternatives[response["decision"]]
+    raise ValueError("Invalid generated skill decision after two responses")
 
 
 def candidate_plan(connection, job, cases, model):
