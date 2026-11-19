@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+import json
 import logging
 from operator import add, or_
 import re
@@ -14,6 +15,7 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict
 
 from .mcp_service import Evidence, ToolResult, signer
+from .rules import generated_match, initial_diagnosis, matchable_features
 
 log = logging.getLogger(__name__)
 ORDER_ID = re.compile(r"(?<![\w.-])LM-[A-Za-z0-9][A-Za-z0-9-]{0,55}(?![A-Za-z0-9.-])", re.ASCII | re.IGNORECASE)
@@ -26,6 +28,7 @@ class Intent(BaseModel):
 
 class GraphState(TypedDict, total=False):
     question: str
+    rules: list[dict]
     scope: dict
     intent: str
     order_id: str | None
@@ -50,19 +53,25 @@ class DeepSeek:
         self.transport = transport
 
     async def identify(self, question):
+        return Intent.model_validate(await self.complete_json(
+            'Classify the supplied question. Return JSON with only kind, either "aftersales" '
+            'for refunds/claims or "logistics".', question, max_tokens=100,
+        ))
+
+    async def complete_json(self, instructions, input_data, max_tokens=1500):
         async with httpx.AsyncClient(timeout=15, trust_env=False, transport=self.transport) as client:
             response = await client.post("https://api.deepseek.com/chat/completions",
                                          headers={"Authorization": f"Bearer {self.key}"}, json={
                 "model": self.model, "response_format": {"type": "json_object"},
-                "thinking": {"type": "disabled"}, "max_tokens": 100,
+                "thinking": {"type": "disabled"}, "max_tokens": max_tokens,
                 "messages": [
-                    {"role": "system", "content": 'Classify the supplied question. Return JSON with only kind, '
-                                                 'either "aftersales" for refunds/claims or "logistics".'},
-                    {"role": "user", "content": question},
+                    {"role": "system", "content": instructions},
+                    {"role": "user", "content": input_data if isinstance(input_data, str)
+                     else json.dumps(input_data, ensure_ascii=False)},
                 ],
             })
             response.raise_for_status()
-        return Intent.model_validate_json(response.json()["choices"][0]["message"]["content"])
+        return json.loads(response.json()["choices"][0]["message"]["content"])
 
 
 def mcp_invoker(url, key):
@@ -177,7 +186,10 @@ def build_workflow(invoke, model=None, attempt_timeout=1.5, total_timeout=8):
         if warehouse and warehouse[0].status == "ok":
             for answer in responses.get("logistics", []):
                 if answer.status == "ok":
-                    diagnoses.append(classify(order_result, warehouse[0], answer, state["scope"]["as_of"]))
+                    aftersales = responses.get("aftersales", [])
+                    support = aftersales[0] if aftersales and aftersales[0].status == "ok" else None
+                    diagnoses.append(classify(order_result, warehouse[0], answer, support,
+                                              state["scope"]["as_of"], state.get("rules", [])))
         if state["intent"] == "aftersales":
             missing.append("适用的售后政策条款")
         if not state["package_ids"]:
@@ -217,17 +229,18 @@ def result(status, summary, facts=None, diagnoses=None, missing=None):
             "evidence_ids": evidence_ids, "retrieval_mode": None}
 
 
-def classify(order, warehouse, tracking, as_of):
-    events = tracking.data["events"]
-    picked_up = any(item["event_type"] == "picked_up" for item in events)
-    delivered = any(item["event_type"] == "delivered" for item in events)
-    promised = order.data["promised_by"]
-    label = next((item["occurred_at"] for item in events if item["event_type"] == "label_created"), None)
-    if not picked_up and label and (datetime.fromisoformat(as_of) - datetime.fromisoformat(label)).total_seconds() > 48 * 3600:
-        classification, rule_id = "pickup_overdue", "initial-label-clock"
-    elif picked_up and not delivered and promised and promised < as_of:
-        classification, rule_id = "in_transit_delayed", "initial-promise-clock"
-    else:
-        classification, rule_id = ("normal" if picked_up or delivered else "awaiting_pickup"), "initial-status"
+def classify(order, warehouse, tracking, support, as_of, rules):
+    classification, rule_id = initial_diagnosis(tracking.data["events"], order.data["promised_by"], as_of)
+    features = matchable_features(
+        any(event["event_type"] == "handed_off" and event["package_id"] == tracking.data["package_id"]
+            for event in warehouse.data["events"]), tracking.data["status"],
+        len(support.data["cases"]) if support else None,
+    )
+    learned = generated_match(rules, features)
+    sources = [order, warehouse, tracking]
+    if learned:
+        classification, rule_id = learned["classification"], "feedback-" + learned["feedback_id"]
+        if support:
+            sources.append(support)
     return {"classification": classification, "rule_id": rule_id,
-            "evidence_ids": [answer.evidence[0].evidence_id for answer in (order, warehouse, tracking)]}
+            "evidence_ids": [answer.evidence[0].evidence_id for answer in sources]}

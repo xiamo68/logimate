@@ -2,7 +2,7 @@
 
 LogiMate 是一个供应链异常排查与策略改进项目。目标是在同一个中文工作台里，让运营人员用自然语言查询订单、仓储、物流和售后，查看判断依据，并把已复核的纠正转化为可回放、可审核、可回滚的排查规则。
 
-**当前进度为阶段 02 跨域取证。** 原生 MySQL、合成数据、会话和 LangGraph 经 MCP 的排查链路已接入。按[本地运行手册](docs/technical/runbook.md#阶段-01-启动)启动基础服务，再启动 MCP。从 [Swagger UI](http://127.0.0.1:8010/docs)查看已实现接口。后续阶段见[交付索引](docs/delivery/README.md)。
+**当前进度为阶段 03 规则治理。** 合成数据、会话、LangGraph 经 MCP 的排查链路和双层改进已接入。按[本地运行手册](docs/technical/runbook.md#阶段-01-启动)启动应用、MCP 和离线 worker。从 [Swagger UI](http://127.0.0.1:8010/docs)查看已实现接口。后续阶段见[交付索引](docs/delivery/README.md)。
 
 ## 计划交付
 

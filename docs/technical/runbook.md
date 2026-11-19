@@ -1,6 +1,6 @@
 # LogiMate 本地运行手册
 
-当前提供原生 MySQL、合成数据、健康探针、会话和 MCP 排查。后续章节标注各阶段预计接入的能力。
+当前提供原生 MySQL、合成数据、健康探针、会话、MCP 排查和规则治理。后续章节标注各阶段预计接入的能力。
 
 ## 环境与配置
 
@@ -45,6 +45,16 @@ uv run --locked --env-file .env uvicorn logimate.mcp_service:create_app --factor
 ```
 
 无密钥模式通过 HTTP 联调说明登录、创建会话并提交 `LM-1001`。运行完成后查看结论、轨迹和证据明细。DeepSeek 模式需显式配置 `LOGIMATE_MODE=deepseek`、`DEEPSEEK_MODEL` 与 `DEEPSEEK_API_KEY`。当前适配器在意图识别节点请求模型，工具授权、取证和诊断在本地执行。正式真实模型验收和费用授权仍在最终阶段。
+
+## 阶段 03 规则治理
+
+升级已有本地数据库时重新执行 `logimate migrate`，并保证阶段 01 生成的验证数据可读取。新开 PowerShell 窗口运行原生 worker。
+
+```powershell
+uv run --locked --env-file .env logimate worker
+```
+
+加 `--once` 可处理一项可领取任务后退出。若数据文件导出在其他目录，传入 `--datasets`。任务逐案例保存结果；异常停止后，新 worker 在原租约过期后继续剩余案例。DeepSeek 模式的 worker 使用同一套模型配置，从已复核的规则候选和有历史回放依据的技能变体中生成提案。两种模式均走同一审批和发布门槛。
 
 ## 评测用法
 

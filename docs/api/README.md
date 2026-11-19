@@ -1,6 +1,6 @@
 # LogiMate HTTP 接口联调
 
-已实现健康探针、演示身份、会话、排查提交以及运行、轨迹和证据读取。其余接口为已确认的设计合同。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
+已实现健康探针、演示身份、会话、排查、证据读取，以及纠正、回放、候选审核、发布和回滚。其余接口为已确认的设计合同。[OpenAPI 3.1](openapi.yaml)定义接口及字段，[MCP 工具合同](mcp-tools.md)定义内部取证接口。
 
 ## 通用约定
 
@@ -53,7 +53,7 @@
 
 ### 2. 提交纠正与复核
 
-向 `POST /runs/run_demo_01/feedback` 提交以下正文，收到 201 及 `fb_demo_01`，状态为 `pending`。
+向 `POST /runs/run_demo_01/feedback` 提交以下正文，收到 201 及 `fb_demo_01`，状态为 `pending`。当前纠正入口要求单包裹运行，并同时引用仓储和物流证据。
 
 ```json
 {

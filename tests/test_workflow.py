@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import socket
@@ -9,11 +10,14 @@ from time import monotonic, sleep
 from fastapi.testclient import TestClient
 import httpx
 import uvicorn
+from sqlalchemy import update
 
 from logimate import store
+from logimate import evolution
 from logimate.api import Settings, create_app
+from logimate.evolution import run_one
 from logimate.mcp_service import ToolResult, create_service
-from logimate.seed import fingerprint, snapshot
+from logimate.seed import export_cases, fingerprint, snapshot
 from logimate.workflow import DeepSeek, build_workflow, mcp_invoker
 
 
@@ -114,6 +118,103 @@ def test_live_mcp_investigation_and_permissions(tmp_path, monkeypatch):
                 tracking = [event for event in trace if event["tool_name"] == "logistics.get_tracking"]
                 assert [event["attempt"] for event in tracking] == [1, 2]
                 assert failed["result"]["status"] == "partial"
+                export_cases(data, tmp_path)
+                sign("alpha_operator")
+                owned_session = client.post("/api/v1/sessions", json={}).json()["session_id"]
+                session_id = owned_session
+                original, _ = investigate("LM-1001 三天没更新")
+                original_id = original["run_id"]
+                endpoints = [client.get(f"/api/v1/evidence/{item}").json() for item in original["result"]["evidence_ids"]]
+                citations = [item["evidence_id"] for item in endpoints if item["source"] in ("warehouse", "logistics")]
+                correction = {"corrected_classification": "awaiting_handoff", "reason": "仓库尚无交接记录",
+                              "evidence_ids": citations}
+                feedback = client.post(f"/api/v1/runs/{original_id}/feedback", json=correction)
+                assert feedback.status_code == 201, feedback.text
+                feedback_id = feedback.json()["feedback_id"]
+                job_body = {"kind": "base", "feedback_ids": [feedback_id]}
+                assert client.post("/api/v1/evolution/jobs", json=job_body).status_code == 422
+                review_body = {"decision": "approve", "reason": "已核对仓库和承运商记录"}
+                assert client.post(f"/api/v1/feedback/{feedback_id}/verify", json=review_body).status_code == 403
+                sign("beta_reviewer")
+                assert client.post(f"/api/v1/feedback/{feedback_id}/verify", json=review_body).status_code == 404
+                sign("alpha_reviewer")
+                assert client.get(f"/api/v1/evidence/{citations[0]}").status_code == 200
+                assert client.post(f"/api/v1/feedback/{feedback_id}/verify", json=review_body).json()["status"] == "verified"
+                sign("alpha_operator")
+
+                def generate(body, interrupt=False):
+                    submitted = client.post("/api/v1/evolution/jobs", json=body)
+                    assert submitted.status_code == 202, submitted.text
+                    job_id = submitted.json()["job_id"]
+                    if interrupt:
+                        update_job = evolution.update_job
+
+                        def lose_lease(connection, job, **changes):
+                            if changes.get("payload", {}).get("processed_cases") == 2:
+                                raise evolution.LeaseLost(job["job_id"])
+                            return update_job(connection, job, **changes)
+
+                        with monkeypatch.context() as scoped:
+                            scoped.setattr(evolution, "update_job", lose_lease)
+                            assert run_one(engine, tmp_path)
+                        interrupted = client.get(f"/api/v1/evolution/jobs/{job_id}").json()
+                        assert interrupted["status"] == "running" and interrupted["processed_cases"] == 1
+                        with engine.begin() as connection:
+                            connection.execute(update(store.jobs).where(store.jobs.c.job_id == job_id)
+                                               .values(lease_until="2000-01-01T00:00:00.000000Z"))
+                    assert run_one(engine, tmp_path)
+                    job = client.get(f"/api/v1/evolution/jobs/{job_id}").json()
+                    assert job["status"] == "completed", job
+                    assert job["total_cases"] == job["processed_cases"] > 0
+                    result = client.get(f"/api/v1/versions/{job['version_id']}").json()
+                    assert result["version"]["state"] == "passed", result
+                    return job["version_id"], result["reports"]
+
+                version, reports = generate(job_body, interrupt=True)
+                competing_version, competing_reports = generate(job_body)
+                assert reports[0]["baseline_error_count"] > reports[0]["candidate_error_count"]
+                sign("alpha_reviewer")
+                release = {"expected_release_id": "rel_initial"}
+                assert client.post(f"/api/v1/versions/{version}/release", json=release).status_code == 409
+                approval = {**review_body, "report_id": reports[0]["report_id"]}
+                assert client.post(f"/api/v1/versions/{version}/review", json=approval).status_code == 200
+                competing_approval = {**review_body, "report_id": competing_reports[0]["report_id"]}
+                assert client.post(f"/api/v1/versions/{competing_version}/review", json=competing_approval).status_code == 200
+                def publish(version_id):
+                    return client.post(f"/api/v1/versions/{version_id}/release", json=release)
+
+                if os.getenv("LOGIMATE_TEST_DSN"):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        responses = list(pool.map(publish, (version, competing_version)))
+                else:
+                    responses = [publish(version), publish(competing_version)]
+                assert sorted(response.status_code for response in responses) == [200, 409]
+                released = next(response for response in responses if response.status_code == 200)
+                winner = released.json()["active"]["version_id"]
+                winning_report = reports[0] if winner == version else competing_reports[0]
+                assert client.get(f"/api/v1/versions/{winner}").json()["reviewed_report_id"] == winning_report["report_id"]
+                sign("alpha_operator")
+                after, _ = investigate("LM-1001 三天没更新")
+                assert after["versions"]["version_id"] == winner
+                assert after["result"]["diagnoses"][0]["classification"] == "awaiting_handoff"
+                meta, meta_reports = generate({"kind": "meta"})
+                assert {item["comparison"] for item in meta_reports} == {"active_baseline", "skill_ablation"}
+                assert all(item["candidate_error_count"] < item["baseline_error_count"] for item in meta_reports)
+                assert client.get(f"/api/v1/versions/{meta}").json()["version"]["skill_version_id"] != after["versions"]["skill_version_id"]
+                sign("alpha_reviewer")
+                meta_report = next(item for item in meta_reports if item["comparison"] == "active_baseline")
+                assert client.post(f"/api/v1/versions/{meta}/review",
+                                   json={**review_body, "report_id": meta_report["report_id"]}).status_code == 200
+                meta_released = client.post(f"/api/v1/versions/{meta}/release",
+                                            json={"expected_release_id": released.json()["active"]["release_id"]})
+                assert meta_released.status_code == 200, meta_released.text
+                rollback = client.post("/api/v1/versions/ver_initial/rollback", json={
+                    "expected_release_id": meta_released.json()["active"]["release_id"], "reason": "验收回滚",
+                })
+                assert rollback.status_code == 200, rollback.text
+                sign("alpha_operator")
+                restored, _ = investigate("LM-1001 三天没更新")
+                assert restored["result"]["diagnoses"][0]["classification"] == "pickup_overdue"
     finally:
         engine.dispose()
 

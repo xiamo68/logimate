@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import store
+from .evolution_api import mount_evolution
 from .runs_api import mount_runs
 
 
@@ -175,4 +176,5 @@ def create_app(settings=None, engine=None):
                 "runs": [summaries[run_id] for run_id in dict.fromkeys(item["run_id"] for item in page)]}
 
     mount_runs(app, engine, settings, identity, same_origin, APIError)
+    mount_evolution(app, engine, settings, identity, same_origin, APIError)
     return app

@@ -15,8 +15,6 @@ from .workflow import DeepSeek, build_workflow, mcp_invoker, utc_now
 log = logging.getLogger(__name__)
 Id = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")]
 Key = Annotated[str | None, Header(alias="Idempotency-Key", pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")]
-INITIAL_VERSIONS = {"release_id": "rel_initial", "version_id": "ver_initial",
-                    "rule_version_id": "rules_initial", "skill_version_id": "skill_initial"}
 
 
 class RunInput(BaseModel):
@@ -70,12 +68,12 @@ def mount_runs(app, engine, settings, identity, origin, error):
             ).values(status="running"))
             return row.rowcount == 1
 
-    async def execute(record, actor):
+    async def execute(record, actor, rules):
         run_id = record["run_id"]
         try:
             if not await run_in_threadpool(mark_started, run_id):
                 return
-            output = await graph.ainvoke({"question": record["question"], "trace": [],
+            output = await graph.ainvoke({"question": record["question"], "trace": [], "rules": rules,
                                           "scope": {**actor, "run_id": run_id,
                                                     "as_of": record["snapshot"]["as_of"],
                                                     "data_version": record["snapshot"]["data_version"]}})
@@ -103,11 +101,12 @@ def mount_runs(app, engine, settings, identity, origin, error):
                 ))
                 if not as_of:
                     raise error(503, "dataset_not_seeded", "请先加载合成数据。")
+                versions, rules = store.active_bundle(connection, actor["tenant_id"])
                 record = {"run_id": uuid4().hex, "session_id": id, "tenant_id": actor["tenant_id"],
                           "user_id": actor["user_id"], "question": body.question, "status": "queued",
                           "idempotency_key": digest, "snapshot": {
                               "mode": mode, "data_version": settings.data_version, "as_of": as_of,
-                              "versions": INITIAL_VERSIONS, "created_at": utc_now(),
+                              "versions": versions, "created_at": utc_now(),
                           }}
                 connection.execute(insert(store.runs).values(**record))
         except IntegrityError:
@@ -123,7 +122,7 @@ def mount_runs(app, engine, settings, identity, origin, error):
             return {"run_id": previous["run_id"], "status": "queued"}
         except SQLAlchemyError:
             raise error(503, "database_unavailable", "暂时无法提交排查。") from None
-        tasks.add_task(execute, record, actor)
+        tasks.add_task(execute, record, actor, rules)
         return {"run_id": record["run_id"], "status": "queued"}
 
     @app.get("/api/v1/runs/{id}")
@@ -142,6 +141,12 @@ def mount_runs(app, engine, settings, identity, origin, error):
             result = connection.scalar(select(store.evidence.c.payload).join(
                 store.runs, store.evidence.c.run_id == store.runs.c.run_id,
             ).where(store.evidence.c.evidence_id == id, *scoped(store.runs, actor)))
+            if result is None and actor["role"] == "reviewer":
+                referenced = connection.execute(select(store.feedback.c.payload, store.evidence.c.payload).join(
+                    store.evidence, store.evidence.c.run_id == store.feedback.c.run_id,
+                ).where(store.evidence.c.evidence_id == id,
+                        store.feedback.c.tenant_id == actor["tenant_id"])).all()
+                result = next((evidence for feedback, evidence in referenced if id in feedback["evidence_ids"]), None)
         if result is None:
             raise error(404, "not_found", "证据不存在。")
         return result

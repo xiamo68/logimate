@@ -52,6 +52,48 @@ evidence = Table(
 )
 
 
+def scoped_records(name, key, *columns):
+    return Table(name, metadata, Column(key, String(64), primary_key=True),
+                 Column("tenant_id", String(32), nullable=False, index=True), *columns,
+                 Column("payload", JSON, nullable=False))
+
+
+feedback = scoped_records("feedback", "feedback_id", Column("session_id", String(64), nullable=False),
+                          Column("run_id", String(64), nullable=False), Column("status", String(20), nullable=False))
+versions = scoped_records("version_candidates", "version_id", Column("state", String(20), nullable=False))
+releases = scoped_records("release_events", "release_id", Column("version_id", String(64), nullable=False))
+reports = scoped_records("replay_reports", "report_id", Column("version_id", String(64), nullable=False, index=True))
+reviews = scoped_records("review_events", "review_id", Column("version_id", String(64), nullable=False))
+jobs = scoped_records(
+    "evolution_jobs", "job_id", Column("status", String(20), nullable=False),
+    Column("lease_token", String(64)), Column("lease_until", String(32)),
+)
+replay_cases = Table(
+    "replay_cases", metadata, Column("job_id", String(64), primary_key=True),
+    Column("case_id", String(64), primary_key=True), Column("payload", JSON, nullable=False),
+)
+active_versions = Table(
+    "active_versions", metadata, Column("tenant_id", String(32), primary_key=True),
+    Column("release_id", String(64), nullable=False), Column("version_id", String(64), nullable=False),
+)
+receipts = Table(
+    "evolution_receipts", metadata, Column("receipt_id", String(64), primary_key=True),
+    Column("request_hash", String(64), nullable=False), Column("payload", JSON, nullable=False),
+)
+INITIAL_VERSIONS = {"release_id": "rel_initial", "version_id": "ver_initial",
+                    "rule_version_id": "rules_initial", "skill_version_id": "skill_initial"}
+
+
+def active_bundle(connection, tenant_id):
+    active = connection.execute(select(active_versions).filter_by(tenant_id=tenant_id)).mappings().one_or_none()
+    if active is None or active["version_id"] == "ver_initial":
+        return {**INITIAL_VERSIONS, "release_id": active["release_id"] if active else "rel_initial"}, []
+    payload = connection.scalar(select(versions.c.payload).filter_by(tenant_id=tenant_id, version_id=active["version_id"]))
+    summary = payload["version"]
+    return {**{key: summary[key] for key in ("version_id", "rule_version_id", "skill_version_id")},
+            "release_id": active["release_id"]}, payload["rules"]
+
+
 def database(dsn):
     return create_engine(dsn, pool_pre_ping=True)
 
@@ -60,9 +102,15 @@ def migrate(engine):
     metadata.create_all(engine)
     with engine.begin() as connection:
         installed = set(connection.scalars(select(schema_versions.c.version)))
-        for version in ("001", "002"):
+        for version in ("001", "002", "003"):
             if version not in installed:
                 connection.execute(insert(schema_versions).values(version=version))
+        tenants = set(connection.scalars(select(active_versions.c.tenant_id)))
+        for tenant in ("alpha", "beta"):
+            if tenant not in tenants:
+                connection.execute(insert(active_versions).values(
+                    tenant_id=tenant, release_id="rel_initial", version_id="ver_initial",
+                ))
 
 
 def seed_database(engine, data, digest):
