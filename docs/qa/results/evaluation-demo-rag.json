@@ -1,0 +1,200 @@
+{
+  "evaluation_id": "62ea0066f77d4594acc8f331616fbc91",
+  "kind": "rag",
+  "mode": "demo",
+  "model_id": null,
+  "data_version": "synthetic-v1",
+  "data_hash": "009c2f3647857c9cc34d5ba4383816b0f589b22b2c7222607aeb36208a79281a",
+  "code_ref": "0ad554798e6149c57b501a440e49aff2ed517779",
+  "config_hash": "b2781d6f4eb32458b1c653053c0df0f8497bc12167284fa6625d01b26125ab7c",
+  "baseline_group": "BM25",
+  "groups": [
+    {
+      "name": "BM25",
+      "sample_count": 60,
+      "metrics": {
+        "recall_at_5": 0.9375,
+        "recall_denominator": 48.0,
+        "retrieval_p50_ms": 0.0,
+        "retrieval_p95_ms": 15.0,
+        "unanswerable_count": 12.0
+      }
+    },
+    {
+      "name": "稠密",
+      "sample_count": 60,
+      "metrics": {
+        "recall_at_5": 1.0,
+        "recall_denominator": 48.0,
+        "retrieval_p50_ms": 15.0,
+        "retrieval_p95_ms": 16.0,
+        "unanswerable_count": 12.0
+      }
+    },
+    {
+      "name": "混合",
+      "sample_count": 60,
+      "metrics": {
+        "recall_at_5": 1.0,
+        "recall_denominator": 48.0,
+        "retrieval_p50_ms": 15.0,
+        "retrieval_p95_ms": 16.0,
+        "unanswerable_count": 12.0,
+        "vector_fallback_count": 0.0
+      }
+    },
+    {
+      "name": "混合问答",
+      "sample_count": 60,
+      "metrics": {
+        "accuracy": 0.8,
+        "hallucination_rate": 0.0,
+        "hallucination_rate_answered": 0.0,
+        "answered_count": 54.0,
+        "coverage_answerable": 1.0,
+        "failed_count": 0.0,
+        "refusal_count": 6.0,
+        "answer_p95_ms": 0.0
+      }
+    }
+  ],
+  "case_examples": [
+    {
+      "case_id": "frozen-rag-001",
+      "scenario": "订单尚未出库，能取消并退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "BM25",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+          "correct": true
+        },
+        {
+          "group": "稠密",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合问答",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-002",
+      "scenario": "包裹还在仓库，我可以撤单退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "BM25",
+          "actual": "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+          "correct": true
+        },
+        {
+          "group": "稠密",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合",
+          "actual": "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合问答",
+          "actual": "refund_in_transit",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-003",
+      "scenario": "仓库还没出货，怎么申请取消订单？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "BM25",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+          "correct": true
+        },
+        {
+          "group": "稠密",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合问答",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-004",
+      "scenario": "发货前反悔了，政策允许退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "BM25",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+          "correct": true
+        },
+        {
+          "group": "稠密",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+          "correct": true
+        },
+        {
+          "group": "混合问答",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-005",
+      "scenario": "订单未出库可以原路退回吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "BM25",
+          "actual": "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+          "correct": true
+        },
+        {
+          "group": "稠密",
+          "actual": "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+          "correct": true
+        },
+        {
+          "group": "混合",
+          "actual": "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7,c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75,9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990,c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+          "correct": true
+        },
+        {
+          "group": "混合问答",
+          "actual": "refund_in_transit",
+          "correct": false
+        }
+      ]
+    }
+  ],
+  "artifact_path": "docs/qa/results/cases-demo-rag.json",
+  "created_at": "2026-11-19T03:26:59.711531Z"
+}

@@ -95,7 +95,7 @@ uv run --locked --env-file .env logimate eval grounding
 
 命令默认输出至 `.logimate/evaluations`。每次生成一份可在工作台读取的 `evaluation-*.json` 摘要及一份 `cases-*.json` 明细。最终冻结集只供评测读取，生成和筛选候选继续使用改进集与开发验证集。详见[验收口径](../qa/acceptance.md)。
 
-真实评测确认费用后启用 `deepseek` 模式，使用同一模型生成 B/C。为临时验收应用配置 `LOGIMATE_DEEPSEEK_MAX_REQUESTS=2`，离线 worker 配置为 3。物流实时调用数为零，它离线读取 B/C 产物。RAG 命令使用 `--mode deepseek --max-requests 60`，事实校验对照用 `--mode deepseek --max-requests 120`。应用的真实售后回答经 DeepSeek 选择候选条款并通过证据校验，显示的引用来自政策原文。每次模型评测保存实际请求及 token 计数。
+真实评测确认费用后启用 `deepseek` 模式，使用同一模型生成 B/C。为临时验收应用配置 `LOGIMATE_DEEPSEEK_MAX_REQUESTS=2`，离线 worker 配置为 4，其中一次用于元层格式校验失败后的重试。物流实时调用数为零，它离线读取 B/C 产物。RAG 命令使用 `--mode deepseek --max-requests 60`，事实校验对照用 `--mode deepseek --max-requests 120`。应用的真实售后回答经 DeepSeek 选择候选条款并通过证据校验，显示的引用来自政策原文。每次模型评测保存实际请求及 token 计数。
 
 ## 诊断与恢复
 

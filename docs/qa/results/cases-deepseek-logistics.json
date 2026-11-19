@@ -1,0 +1,2446 @@
+{
+  "config": {
+    "rule_versions": [
+      "rules_initial",
+      "r_37fbbc5cc05ae8b5cd346f8908e34d92",
+      "r_0a6d8e42c19ee67e7497e4e8de9dea82"
+    ],
+    "skill_versions": [
+      "s_10e449ef28c001e6113ae5c4390c27d7",
+      "s_e67971ee6a969b425f5f0041d43c7cd0"
+    ],
+    "generation_usage": {
+      "fixed": {
+        "attempts": 1,
+        "prompt_tokens": 169,
+        "completion_tokens": 73,
+        "cached_prompt_tokens": 0
+      },
+      "evolved": {
+        "attempts": 2,
+        "prompt_tokens": 618,
+        "completion_tokens": 68,
+        "cached_prompt_tokens": 0
+      }
+    },
+    "candidate_versions": [
+      "ver_06e6e9c58a7a43068f0a61586c3641bd",
+      "ver_f09ae0c015434259b339e5cd0165e885"
+    ],
+    "mode": "deepseek",
+    "experiment": "logistics",
+    "benchmark_revision": "synthetic-final-v1",
+    "code_ref": "bb55d11098642cc340c621eae5644c626d44a467-dirty",
+    "model_id": "deepseek-flash",
+    "request_limit": 0,
+    "answer_max_tokens": 350,
+    "actual_usage": {
+      "attempts": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cached_prompt_tokens": 0
+    }
+  },
+  "cases": [
+    {
+      "case_id": "frozen-lm-001",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-002",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-003",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-004",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-005",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-006",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-007",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-008",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-009",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-010",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-011",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-012",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-013",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-014",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-015",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-016",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-017",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-018",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-019",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-020",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-021",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-022",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-023",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-024",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-025",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-026",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-027",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-028",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-029",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-030",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-031",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-032",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-033",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-034",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-035",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-036",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-037",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-038",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-039",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-040",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-041",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-042",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-043",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-044",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-045",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-046",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-047",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-048",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-049",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-050",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-051",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-052",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-053",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-054",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-055",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-056",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-057",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-058",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-059",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-060",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-061",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-062",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-063",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-064",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-065",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-066",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-067",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-068",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-069",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-070",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-071",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-072",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-073",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-074",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-075",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-076",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-077",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-078",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-079",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-080",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-081",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-082",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-083",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-084",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-085",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-086",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-087",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-088",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-089",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-090",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-091",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_handoff",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-092",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "pickup_overdue",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-093",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-094",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "tracking"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "needs_verification",
+          "missing": [
+            "tracking"
+          ],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-095",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "in_transit_delayed",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-096",
+      "scenario": "recent_handoff",
+      "expected": "awaiting_pickup",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-097",
+      "scenario": "unhanded_no_label",
+      "expected": "awaiting_handoff",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-098",
+      "scenario": "delivered_late",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "B 固定技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        },
+        "C 演化技能": {
+          "actual": "normal",
+          "missing": [],
+          "correct": true
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-099",
+      "scenario": "before_promised_date",
+      "expected": "normal",
+      "expected_missing": [],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    },
+    {
+      "case_id": "frozen-lm-100",
+      "scenario": "carrier_exception_without_handoff",
+      "expected": "needs_verification",
+      "expected_missing": [
+        "handoff_proof"
+      ],
+      "results": {
+        "A 初始规则": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "B 固定技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        },
+        "C 演化技能": {
+          "actual": "awaiting_pickup",
+          "missing": [],
+          "correct": false
+        }
+      }
+    }
+  ]
+}

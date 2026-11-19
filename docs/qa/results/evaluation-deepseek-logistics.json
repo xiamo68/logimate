@@ -1,0 +1,155 @@
+{
+  "evaluation_id": "ca300ad376e44e70888313aa0ff73397",
+  "kind": "logistics",
+  "mode": "deepseek",
+  "model_id": "deepseek-flash",
+  "data_version": "synthetic-v1",
+  "data_hash": "009c2f3647857c9cc34d5ba4383816b0f589b22b2c7222607aeb36208a79281a",
+  "code_ref": "bb55d11098642cc340c621eae5644c626d44a467-dirty",
+  "config_hash": "15f0a447db3fa4dc3615aecfaa47c4c0d5a8f0916564c51cf1001acd9d31628f",
+  "baseline_group": "A 初始规则",
+  "groups": [
+    {
+      "name": "A 初始规则",
+      "sample_count": 100,
+      "metrics": {
+        "error_count": 40.0,
+        "error_rate": 0.4
+      }
+    },
+    {
+      "name": "B 固定技能",
+      "sample_count": 100,
+      "metrics": {
+        "error_count": 36.0,
+        "error_rate": 0.36,
+        "improvement_pp_vs_previous": 4.0,
+        "relative_improvement_vs_previous": 0.1
+      }
+    },
+    {
+      "name": "C 演化技能",
+      "sample_count": 100,
+      "metrics": {
+        "error_count": 30.0,
+        "error_rate": 0.3,
+        "improvement_pp_vs_previous": 6.0,
+        "relative_improvement_vs_previous": 0.166667
+      }
+    }
+  ],
+  "case_examples": [
+    {
+      "case_id": "frozen-lm-001",
+      "scenario": "unhanded_label",
+      "expected": "awaiting_handoff",
+      "results": [
+        {
+          "group": "A 初始规则",
+          "actual": "pickup_overdue",
+          "correct": false
+        },
+        {
+          "group": "B 固定技能",
+          "actual": "awaiting_handoff",
+          "correct": true
+        },
+        {
+          "group": "C 演化技能",
+          "actual": "awaiting_handoff",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-lm-002",
+      "scenario": "accepted_label_old",
+      "expected": "pickup_overdue",
+      "results": [
+        {
+          "group": "A 初始规则",
+          "actual": "pickup_overdue",
+          "correct": true
+        },
+        {
+          "group": "B 固定技能",
+          "actual": "pickup_overdue",
+          "correct": true
+        },
+        {
+          "group": "C 演化技能",
+          "actual": "pickup_overdue",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-lm-003",
+      "scenario": "fresh_pickup",
+      "expected": "normal",
+      "results": [
+        {
+          "group": "A 初始规则",
+          "actual": "normal",
+          "correct": true
+        },
+        {
+          "group": "B 固定技能",
+          "actual": "normal",
+          "correct": true
+        },
+        {
+          "group": "C 演化技能",
+          "actual": "normal",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-lm-004",
+      "scenario": "carrier_unreachable",
+      "expected": "needs_verification",
+      "results": [
+        {
+          "group": "A 初始规则",
+          "actual": "needs_verification",
+          "correct": true
+        },
+        {
+          "group": "B 固定技能",
+          "actual": "needs_verification",
+          "correct": true
+        },
+        {
+          "group": "C 演化技能",
+          "actual": "needs_verification",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-lm-005",
+      "scenario": "beyond_promised_date",
+      "expected": "in_transit_delayed",
+      "results": [
+        {
+          "group": "A 初始规则",
+          "actual": "in_transit_delayed",
+          "correct": true
+        },
+        {
+          "group": "B 固定技能",
+          "actual": "in_transit_delayed",
+          "correct": true
+        },
+        {
+          "group": "C 演化技能",
+          "actual": "in_transit_delayed",
+          "correct": true
+        }
+      ]
+    }
+  ],
+  "artifact_path": "docs/qa/results/cases-deepseek-logistics.json",
+  "created_at": "2026-11-19T03:34:52.148100Z"
+}

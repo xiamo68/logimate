@@ -1,0 +1,130 @@
+{
+  "evaluation_id": "bd3b1be3543b4a5197e74d23ab4734bd",
+  "kind": "grounding",
+  "mode": "deepseek",
+  "model_id": "deepseek-flash",
+  "data_version": "synthetic-v1",
+  "data_hash": "009c2f3647857c9cc34d5ba4383816b0f589b22b2c7222607aeb36208a79281a",
+  "code_ref": "30babad1789959db1d1703f2eb7c08e5cc2af7d3-dirty",
+  "config_hash": "fa34f440da2d0f1ac156c767600fc4fb2926f1d9fb737772a7ee01e02e42cfc6",
+  "baseline_group": "无校验汇总",
+  "groups": [
+    {
+      "name": "无校验汇总",
+      "sample_count": 60,
+      "metrics": {
+        "accuracy": 1.0,
+        "hallucination_rate": 0.0,
+        "hallucination_rate_answered": 0.0,
+        "answered_count": 48.0,
+        "coverage_answerable": 1.0,
+        "failed_count": 0.0,
+        "refusal_count": 12.0,
+        "answer_p95_ms": 1688.0
+      }
+    },
+    {
+      "name": "证据校验汇总",
+      "sample_count": 60,
+      "metrics": {
+        "accuracy": 0.95,
+        "hallucination_rate": 0.0,
+        "hallucination_rate_answered": 0.0,
+        "answered_count": 45.0,
+        "coverage_answerable": 0.9375,
+        "failed_count": 0.0,
+        "refusal_count": 15.0,
+        "answer_p95_ms": 1828.0
+      }
+    }
+  ],
+  "case_examples": [
+    {
+      "case_id": "frozen-rag-001",
+      "scenario": "订单尚未出库，能取消并退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "无校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        },
+        {
+          "group": "证据校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-002",
+      "scenario": "包裹还在仓库，我可以撤单退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "无校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        },
+        {
+          "group": "证据校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-003",
+      "scenario": "仓库还没出货，怎么申请取消订单？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "无校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        },
+        {
+          "group": "证据校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-004",
+      "scenario": "发货前反悔了，政策允许退款吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "无校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        },
+        {
+          "group": "证据校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "case_id": "frozen-rag-005",
+      "scenario": "订单未出库可以原路退回吗？",
+      "expected": "refund_before_outbound",
+      "results": [
+        {
+          "group": "无校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        },
+        {
+          "group": "证据校验汇总",
+          "actual": "refund_before_outbound",
+          "correct": true
+        }
+      ]
+    }
+  ],
+  "artifact_path": "docs/qa/results/cases-deepseek-grounding.json",
+  "created_at": "2026-11-19T03:39:07.728170Z"
+}

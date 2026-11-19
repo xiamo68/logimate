@@ -1,0 +1,2279 @@
+{
+  "config": {
+    "embedding_model": "BAAI/bge-small-zh-v1.5",
+    "threshold": 0.45,
+    "retrieval_budget_ms": 800,
+    "experiment": "grounding",
+    "benchmark_revision": "synthetic-final-v1",
+    "code_ref": "0ad554798e6149c57b501a440e49aff2ed517779",
+    "model_id": null,
+    "mode": "demo",
+    "request_limit": null,
+    "answer_max_tokens": null
+  },
+  "cases": [
+    {
+      "case_id": "frozen-rag-001",
+      "scenario": "订单尚未出库，能取消并退款吗？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-002",
+      "scenario": "包裹还在仓库，我可以撤单退款吗？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-003",
+      "scenario": "仓库还没出货，怎么申请取消订单？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-004",
+      "scenario": "发货前反悔了，政策允许退款吗？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-005",
+      "scenario": "订单未出库可以原路退回吗？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-006",
+      "scenario": "待出库订单是否符合退款条件？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-007",
+      "scenario": "仓库未发件，客户要求取消，怎么处理？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-008",
+      "scenario": "商品还未出库，是否可申请退单？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-009",
+      "scenario": "订单没有出库记录，能不能退款取消？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-010",
+      "scenario": "想在仓库出库之前取消发货并退款。",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-011",
+      "scenario": "货还没出仓，政策允许申请退款么？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-012",
+      "scenario": "待发货的订单可以取消并拿回款项吗？",
+      "expected": "refund_before_outbound",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-013",
+      "scenario": "物流已揽收，还能直接退款吗？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-014",
+      "scenario": "货已在运输路上，办退款要先查什么？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-015",
+      "scenario": "承运商收货以后申请退款的前置条件是什么？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-016",
+      "scenario": "已寄出的包裹要退款需要核对什么轨迹？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-017",
+      "scenario": "快递已经揽收，客服处理退单前要确认什么？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-018",
+      "scenario": "对于在途订单，退款前怎样确认退回？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-019",
+      "scenario": "已被快递公司接收的件能否立即退款？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-020",
+      "scenario": "申请在途退款时，应该检查回程记录吗？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-021",
+      "scenario": "承运商已收走货物，付款怎么退？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-022",
+      "scenario": "包裹运输中，先检查退回轨迹还是直接退钱？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-023",
+      "scenario": "已经有揽收扫描，客户想退款，应先核实什么？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-024",
+      "scenario": "快递未到但已经上路，售后退款要查哪些资料？",
+      "expected": "refund_in_transit",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_in_transit",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_in_transit",
+            "evidence_ids": [
+              "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-025",
+      "scenario": "实际交接后两天多没揽收，可以要求核实吗？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-026",
+      "scenario": "交给承运商 50 小时，仍无揽收扫描怎么办？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-027",
+      "scenario": "仓库确认移交后 49 小时未揽件，能走物流核实吗？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-028",
+      "scenario": "发起揽收超时核实的条件是什么？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-029",
+      "scenario": "真实交接满三天却没有揽收，是否可找承运商？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-030",
+      "scenario": "只有打印面单，能否直接按交接后的48小时核实？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-031",
+      "scenario": "赔付规则写的揽收超时从哪个动作开始算？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-032",
+      "scenario": "从仓库实际交给物流起，多久没揽收可核实？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-033",
+      "scenario": "货已交接超过48小时，物流仍没签收揽件，有适用条款吗？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-034",
+      "scenario": "超过两日无收件记录且仓库已交货，如何核实？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-035",
+      "scenario": "交接之后迟迟没入物流网，多少小时可以要求核实？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-036",
+      "scenario": "承运商在实物移交后 60 小时没揽收，能提交核实吗？",
+      "expected": "pickup_overdue_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-037",
+      "scenario": "显示签收但我没有收到，核实需要什么资料？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-038",
+      "scenario": "包裹显示妥投却不见了，怎样受理争议？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-039",
+      "scenario": "客户否认签收，需要准备哪两个材料？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-040",
+      "scenario": "争议件查询要提供签收凭证和什么？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-041",
+      "scenario": "快递被标记已签，收货人没收到，怎样发起核实？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "pickup_overdue_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "pickup_overdue_check",
+            "evidence_ids": [
+              "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-042",
+      "scenario": "客服处理签收争议时必须拿到哪些信息？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-043",
+      "scenario": "运单写着已送到，申请核实要提供什么？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-044",
+      "scenario": "疑似代签，需要签收记录和单号吗？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-045",
+      "scenario": "签收证明和运单号齐全能提交争议吗？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-046",
+      "scenario": "客户说包裹未收且物流已签收，需要哪种凭证？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990",
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-047",
+      "scenario": "妥投信息和实际不符，有争议怎么报？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-048",
+      "scenario": "已经显示签收，收件人否认，查件材料有哪些？",
+      "expected": "delivery_dispute_check",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-049",
+      "scenario": "购买的设备包含几年延保？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-050",
+      "scenario": "海外维修能否走全球联保？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-051",
+      "scenario": "可以补开电子增值税发票吗？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-052",
+      "scenario": "积分过期后能重新激活吗？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-053",
+      "scenario": "国家补贴如何申请？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-054",
+      "scenario": "门店能提供上门安装吗？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-055",
+      "scenario": "会员升级后的折扣比例是多少？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "delivery_dispute_check",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "delivery_dispute_check",
+            "evidence_ids": [
+              "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "9fb2ea51cd5a2a6c2306327d246e3c7c703b6150d7f3eae7dd003d881bf86990"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-056",
+      "scenario": "拆封商品是否可以换颜色？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-057",
+      "scenario": "半年内电子产品保修期怎么算？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        },
+        "证据校验汇总": {
+          "actual": "insufficient",
+          "correct": true,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "insufficient",
+            "claim": null,
+            "evidence_ids": []
+          }
+        }
+      },
+      "evidence_ids": []
+    },
+    {
+      "case_id": "frozen-rag-058",
+      "scenario": "过期优惠券可以恢复吗？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-059",
+      "scenario": "购买时赠送的上门服务怎么预约？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3"
+      ]
+    },
+    {
+      "case_id": "frozen-rag-060",
+      "scenario": "可以更换发票上的公司名称吗？",
+      "expected": "insufficient",
+      "results": {
+        "无校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        },
+        "证据校验汇总": {
+          "actual": "refund_before_outbound",
+          "correct": false,
+          "hallucinated": false,
+          "answer_ms": 0.0,
+          "answer": {
+            "status": "answered",
+            "claim": "refund_before_outbound",
+            "evidence_ids": [
+              "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75"
+            ]
+          }
+        }
+      },
+      "evidence_ids": [
+        "c37f7c56e2e5aae7b74c08b2fe373e503f92012f4b291507543cf4c2af863f75",
+        "c40c6138932f19a286021731b6e4fcb5fc1a0fbeb19a5a3627b544a0ba336dd3",
+        "851fa1e951424908d16aaf1501d5fdac8263c7efb73e0d6db185fec187836cb7"
+      ]
+    }
+  ]
+}
