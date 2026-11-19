@@ -25,6 +25,10 @@ const viewLabels = {investigate: "排查", improve: "策略改进", evaluate: "�
 const emptyResult = "输入订单号后查看核查结论和业务证据。";
 const emptyAction = "查询后将根据已取得的证据给出处理建议。";
 const stages = {order: "订单状态", warehouse: "仓储出库与交接", logistics: "承运商揽收", aftersales: "售后工单", policy: "适用政策"};
+const domainTools = {
+  "order.get": "订单 Agent", "warehouse.get_events": "仓储 Agent",
+  "logistics.get_tracking": "物流 Agent", "aftersales.get_cases": "售后 Agent",
+};
 const handling = {
   awaiting_handoff: ["联系仓库核实交接", "核对交接单、交接时间与包裹号。若尚未交接，请仓库确认预计交接时间。"],
   awaiting_pickup: ["向承运商核实揽收进度", "提供包裹号及交接凭证，确认是否完成首次揽收扫描。"],
@@ -125,17 +129,20 @@ function shortId(id) {
   return id && id.length > 18 ? id.slice(0, 12) + "…" : id;
 }
 
+function evidenceOverview(item) {
+  if (item.policy) return item.policy.title_path.join(" / ");
+  if (item.source === "warehouse" && item.fields.some(field => field.name === "handoff_recorded" && field.value === false)) {
+    return "仓储查询未见交接记录";
+  }
+  const fields = item.fields.filter(field => field.value !== null);
+  return fields.map(field => `${labels[field.name] || field.name} ${labels[field.value] || translatedValue(field.value)}`)
+    .join(" · ") || item.resource_id;
+}
+
 function evidenceRow(item) {
   const details = node("details", undefined, "evidence-row");
   const summary = node("summary");
-  const overview = item.policy
-    ? item.policy.title_path.join(" / ")
-    : item.source === "warehouse" && item.fields.some(field => field.name === "handoff_recorded" && field.value === false)
-      ? "仓储查询未见交接记录"
-    : item.fields.filter(field => field.value !== null).map(
-      field => `${labels[field.name] || field.name} ${labels[field.value] || translatedValue(field.value)}`,
-    ).join(" · ");
-  summary.append(node("strong", stages[item.source] || item.source), node("span", overview || item.resource_id),
+  summary.append(node("strong", stages[item.source] || item.source), node("span", evidenceOverview(item)),
                  node("span", "原始记录 ›"));
   details.append(summary);
   const body = node("div", undefined, "detail-body");
@@ -153,6 +160,91 @@ function evidenceRow(item) {
               node("p", `证据 ID ${item.evidence_id}`, "metadata"));
   details.append(body);
   return details;
+}
+
+function evidenceButton(text, ids, rows) {
+  const linked = [...new Set(ids)].map(id => rows.get(id)).filter(Boolean);
+  if (!linked.length) return null;
+  const button = node("button", text, "evidence-link");
+  button.type = "button";
+  button.addEventListener("click", () => {
+    for (const details of linked) details.open = true;
+    const target = linked[0].querySelector("summary");
+    target.focus({preventScroll: true});
+    target.scrollIntoView({block: "nearest"});
+  });
+  return button;
+}
+
+function summarizeDomains(events) {
+  const groups = new Map();
+  for (const event of events) {
+    if (event.kind !== "tool" || !Object.hasOwn(domainTools, event.tool_name)) continue;
+    if (!groups.has(event.tool_name)) groups.set(event.tool_name, new Map());
+    const calls = groups.get(event.tool_name);
+    const callId = event.tool_call_id || event.sequence;
+    const previous = calls.get(callId);
+    if (!previous || event.attempt >= previous.attempt) calls.set(callId, event);
+  }
+  return Object.entries(domainTools).flatMap(([tool, name]) => {
+    const calls = groups.get(tool);
+    if (!calls) return [];
+    const results = [...calls.values()];
+    const successes = results.filter(event => event.status === "ok");
+    const errors = [...new Set(results.filter(event => event.status !== "ok")
+      .map(event => labels[event.error_code] || "未取得记录"))];
+    return [{name, errors, ids: successes.flatMap(event => event.evidence_ids)}];
+  });
+}
+
+function agentProcess(details, events, evidence, rows, order, status, basis) {
+  const domains = summarizeDomains(events);
+  const missing = domains.filter(domain => domain.errors.length);
+  const panel = node("section", undefined, "agent-process");
+  panel.setAttribute("aria-label", "Agent 排查过程");
+  const title = node("div", undefined, "section-head");
+  title.append(node("h3", "Agent 排查过程"));
+  if (domains.length) {
+    const available = domains.length - missing.length;
+    title.append(node("span", `${available}/${domains.length} 个业务来源完整返回`, "metadata"));
+  }
+  panel.append(title);
+  if (events.some(event => event.node_id === "intent" && event.kind === "node")) {
+    panel.append(node("p", order ? `协调 Agent 已处理订单 ${order.resource_id} 的排查请求。` :
+      details.status === "needs_clarification" ? "协调 Agent 请求补充订单号。" :
+        details.retrieval_mode ? "协调 Agent 已处理政策查询请求。" : "协调 Agent 未能确认订单记录。", "agent-intent"));
+  }
+  if (!events.length) {
+    panel.append(node("p", "此运行没有可查看的 Agent 轨迹。", "empty"));
+    return panel;
+  }
+  if (missing.length) {
+    const names = missing.map(domain => `${domain.name.replace(" Agent", "")}（${domain.errors.join("、")}）`);
+    panel.append(node("p", `未完整返回：${names.join("、")}。结果以已取得的记录为准。`, "agent-warning"));
+  }
+  const disclosure = node("details", undefined, "agent-disclosure");
+  disclosure.append(node("summary", "查看各 Agent 的排查结果"));
+  const list = node("ul", undefined, "agent-list");
+  const byId = new Map(evidence.map(item => [item.evidence_id, item]));
+  for (const domain of domains) {
+    const facts = [...new Set(domain.ids.map(id => byId.get(id)).filter(Boolean).map(evidenceOverview))];
+    const item = node("li");
+    const outcome = [...facts, ...domain.errors].join("；") || "已完成查询";
+    item.append(node("strong", domain.name), node("span", outcome));
+    const jump = evidenceButton("看业务证据", domain.ids, rows);
+    if (jump) item.append(jump);
+    list.append(item);
+  }
+  if (events.some(event => event.node_id === "conclusion" && event.kind === "node")) {
+    const conclusion = node("li");
+    conclusion.append(node("strong", "协调 Agent"), node("span", status.step[0]));
+    const jump = evidenceButton("看结论依据", basis, rows);
+    if (jump) conclusion.append(jump);
+    list.append(conclusion);
+  }
+  disclosure.append(list);
+  panel.append(disclosure);
+  return panel;
 }
 
 function translatedValue(value) {
@@ -217,7 +309,8 @@ function showTrace(events) {
     const entry = node("li");
     entry.dataset.state = event.status;
     entry.append(node("strong", labels[event.tool_name || event.node_id] || event.node_id),
-                 node("p", `${event.duration_ms} ms${event.attempt ? ` · 第 ${event.attempt} 次` : ""}` +
+                 node("p", `${event.tool_name ? event.tool_name + " · " : ""}${event.duration_ms} ms` +
+                   (event.attempt ? ` · 第 ${event.attempt} 次` : "") +
                    (event.error_code ? ` · ${labels[event.error_code] || event.error_code}` : "")));
     timeline.append(entry);
   }
@@ -282,6 +375,12 @@ async function showRun(run, token, generation) {
   const details = run.result;
   const name = [...new Set(details.diagnoses.map(item => diagnosisLabels[item.classification]))].join(" / ");
   const status = resolveHandling(details, evidence);
+  const evidenceItems = normalizeEvidence(evidence);
+  const rows = new Map(evidenceItems.map(item => [item.evidence_id, evidenceRow(item)]));
+  const basis = status.step === handling.awaiting_handoff && evidenceItems.some(item => item.source === "warehouse")
+    ? evidenceItems.filter(item => ["warehouse", "logistics"].includes(item.source)).map(item => item.evidence_id)
+    : status.title === "已查到相关政策" ? evidenceItems.filter(item => item.policy).map(item => item.evidence_id)
+      : details.status === "answered" ? details.diagnoses.flatMap(item => item.evidence_ids) : [];
   const order = evidence.find(item => item.source === "order");
   const heading = node("div", undefined, "section-head");
   heading.append(node("h2", order ? `订单 ${order.resource_id}` : "排查结果"));
@@ -296,15 +395,18 @@ async function showRun(run, token, generation) {
   body.append(shortcut);
   const actionBox = node("div", undefined, "action-box");
   actionBox.append(node("h3", status.step[0]), node("p", status.step[1]));
+  const basisLink = evidenceButton("查看处理依据", basis, rows);
+  if (basisLink) actionBox.append(basisLink);
   show($("next-action"), actionBox);
   if (details.missing_information.length) {
     $("next-action").append(node("p", "待补充 " + details.missing_information.join("、"), "subtle"));
   }
+  body.append(agentProcess(details, trace.events, evidence, rows, order, status, basis));
   if (evidence.length) {
     const list = node("div", undefined, "evidence-list");
     const tableHeading = node("div", undefined, "evidence-header");
     tableHeading.append(node("span", "业务环节"), node("span", "核查结果"), node("span", "详情"));
-    list.append(tableHeading, ...normalizeEvidence(evidence).map(evidenceRow));
+    list.append(tableHeading, ...rows.values());
     body.append(node("h3", "业务证据"), list);
   }
   if (details.next_steps.length) $("next-action").append(node("p", details.next_steps.join(" · "), "subtle"));
